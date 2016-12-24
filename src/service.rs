@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::fmt;
 use std::fmt::Display;
+use common::*;
 
 
 /*
@@ -58,7 +59,7 @@ impl Service {
 
     /// loads service definition from toml (ini) file
     pub fn load(name: String) -> Result<String, String> {
-        let file_name = format!("/Services/{}", name.clone());
+        let file_name = format!("{}/{}", SERVICES_DIR, name.clone());
         match Service::load_raw(file_name) {
             Ok(content) => Ok(content),
             Err(error) => Err(error),
