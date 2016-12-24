@@ -9,21 +9,22 @@ extern crate glob;
 extern crate time;
 
 
+pub mod common;
 pub mod service;
 pub mod svarog;
 pub mod perun;
 pub mod veles;
-
-use toml::decode_str;
-use service::Service;
-use veles::Veles;
-use perun::Perun;
 
 use std::time::Duration;
 use std::thread::sleep;
 use colored::*;
 use log::LogLevel::*;
 
+use toml::decode_str;
+use service::Service;
+use veles::Veles;
+use perun::Perun;
+use common::*;
 
 
 fn main() {
@@ -46,9 +47,12 @@ fn main() {
     };
     let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Debug);
 
-    info!("Veles spawned!");
+    info!("Your {} are ready to serve you!", "deities".green().bold());
+
+    let mut cycle_count = 0u64;
+    info!("Entering Veles main loop.. (check interval: {:4}ms)", CHECK_INTERVAL);
     loop {
-        debug!("\n");
+        debug!("---------< C{:06} >----------", cycle_count);
         for service_to_monitor in Veles::list_services() {
             match service_to_monitor.unwrap().file_name() {
                 Some(path) => {
@@ -62,10 +66,10 @@ fn main() {
                                             // perfom Perun checks
                                             match service.checks_for() {
                                                 Ok(ok) =>
-                                                    info!("{:?}", ok),
+                                                    info!("{}", ok),
 
                                                 Err(error) =>
-                                                    error!("{:?}", error),
+                                                    error!("{}", error),
                                             }
                                         },
                                         None =>
@@ -81,7 +85,8 @@ fn main() {
                 None => error!("No access to read service definition file?")
             }
         }
-        sleep(Duration::from_millis(2000));
+        sleep(Duration::from_millis(CHECK_INTERVAL));
+        cycle_count += 1;
     }
 }
 
