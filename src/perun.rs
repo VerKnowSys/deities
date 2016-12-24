@@ -1,8 +1,9 @@
 use std::os::unix::net::UnixStream;
 use std::io::prelude::*;
+use libc::*;
+use colored::*;
 
 use service::Service;
-use libc::*;
 
 
 /*
@@ -63,23 +64,41 @@ impl Perun for Service {
 
 
     fn checks_for(&self) -> Result<String, String> {
-        trace!("{}", self);
+        let mut checks_performed = 0;
 
-        match self.try_unix_socket() {
-            Ok(_) => {
-                trace!("UNIX socket check passed for Service: {}, with unix_socket: {}", self, self.unix_socket());
-            },
-            Err(err) => return Err(err),
+        match self.unix_socket().as_ref() {
+            "" => trace!("Undefined unix socket for: {}", self),
+            _  =>
+                match self.try_unix_socket() {
+                    Ok(_) => {
+                        checks_performed += 1;
+                        debug!("UNIX socket check passed for Service: {}, with unix_socket: {}", self, self.unix_socket())
+                    },
+                    Err(err) => return Err(err),
+                },
         }
 
-        match self.try_pid_file() {
-            Ok(_) => {
-                trace!("PID check passed for Service: {}, with pid_file: {}", self, self.pid_file());
-            },
-            Err(err) => return Err(err),
+        match self.pid_file().as_ref() {
+            "" => trace!("Undefined unix socket for: {}", self),
+            _  =>
+                match self.try_pid_file() {
+                    Ok(_) => {
+                        checks_performed += 1;
+                        debug!("PID check passed for Service: {}, with pid_file: {}", self, self.pid_file())
+                    },
+                    Err(err) => return Err(err),
+                },
         }
 
-        Ok(format!("All checks passed for service: {}", self))
+        trace!("performed {} checks for: {}", checks_performed, self);
+        let plu = match checks_performed {
+            1 => "check",
+            _ => "checks",
+        };
+        match checks_performed {
+            0 => Ok(format!("Ok ⇒ No {} for service: {}", plu, self)),
+            _ => Ok(format!("Ok ⇒ {} {} passed for service: {}", format!("{:2}", checks_performed).bold(), plu, self)),
+        }
     }
 
 }
