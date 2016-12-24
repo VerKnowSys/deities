@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate libc;
 extern crate rustc_serialize;
 extern crate toml;
 extern crate glob;
@@ -39,7 +40,7 @@ fn main() {
                                     match val {
                                         Some(service) => {
                                             // perfom Perun checks
-                                            match Perun::checks_for(service) {
+                                            match service.checks_for() {
                                                 Ok(ok) =>
                                                     info!("{:?}", ok),
 
