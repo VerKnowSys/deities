@@ -1,6 +1,6 @@
-// use service::Service;
 use glob::glob;
 use glob::Paths;
+use common::*;
 
 
 /*
@@ -13,7 +13,9 @@ impl Veles {
 
 
     pub fn list_services() -> Paths {
-        glob("/Services/*.conf").expect("Failed to match /Services/*.conf")
+        glob(
+            &format!("{}/{}", SERVICES_DIR, SERVICES_GLOB)
+        ).expect("Failed to match /Services/*.conf")
     }
 
 
