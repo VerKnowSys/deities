@@ -26,13 +26,17 @@ pub struct Service {
 
 
     /* Perun: */
+
+    // watch service availability through UNIX socket:
     pub unix_socket: Option<String>,
+
+    // watch service availability through pid_file
     pub pid_file: Option<String>,
 
-    /// listens is a vector of URLs like: ["127.0.0.1:1234", "1.2.3.4:5000"]
+    /// watch if service listens is a vector of URLs like: ["127.0.0.1:1234", "1.2.3.4:5000"]
     pub listens: Option<Vec<String>>,
 
-    /// domains is a vector of FQDN like: ["my.shiny.domain.com/page2?param=1", "some.com"]
+    /// watch if service domains is a vector of FQDN like: ["my.shiny.domain.com/page2?param=1", "some.com"]
     pub domains: Option<Vec<String>>,
 }
 
