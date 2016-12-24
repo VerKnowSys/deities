@@ -7,7 +7,7 @@ extern crate rustc_serialize;
 extern crate toml;
 extern crate glob;
 extern crate time;
-
+extern crate uuid;
 
 pub mod common;
 pub mod service;
@@ -19,13 +19,13 @@ use std::time::Duration;
 use std::thread::sleep;
 use colored::*;
 use log::LogLevel::*;
+use std::collections::HashSet;
 
 use toml::decode_str;
 use service::Service;
 use veles::Veles;
 use perun::Perun;
 use common::*;
-
 
 
 fn init_logger() {
@@ -55,10 +55,16 @@ fn main() {
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
 
+    let mut services = HashSet::new();
+    let mut services_err = HashSet::new();
     let mut cycle_count = 0u64;
-    info!("{} main-loop. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
+    debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
+
     loop {
-        debug!("---------< C-{:06} >----------", cycle_count);
+        debug!("");
+        cycle_count += 1;
+        trace!("{} - {}", "check iteration".yellow(), format!("{:06}", cycle_count).yellow().bold());
+
         for service_to_monitor in Veles::list_services() {
             match service_to_monitor.unwrap().file_name() {
                 Some(path) => {
@@ -71,28 +77,61 @@ fn main() {
                                         Some(service) => {
                                             // perfom Perun checks
                                             match service.checks_for() {
-                                                Ok(ok) =>
-                                                    info!("{}", ok),
+                                                Ok(ok) => {
+                                                    services_err.remove(&service.name());
+                                                    services.insert(service.name());
+                                                    debug!("{}", ok)
+                                                },
 
-                                                Err(error) =>
-                                                    error!("{}", error),
+                                                Err(error) => {
+                                                    services.remove(&service.name());
+                                                    services_err.insert(service.name());
+                                                    error!("{}", error)
+                                                }
                                             }
                                         },
-                                        None =>
+                                        None => {
                                             error!("Failed to load service file: {:?}. Please double check definition syntax since we're not validating it properly for now.", service_definition_file)
+                                        }
                                     }
                                 },
-                                Err(error) => error!("Error {:?}", error)
+                                Err(error) => {
+                                    error!("Definition load failure: {:?}", error)
+                                }
                             }
                         },
-                        None => error!("No file! {:?}", path)
+                        None => error!("No access to definition file! {:?}", path)
                     }
                 },
                 None => error!("No access to read service definition file?")
             }
         }
+
+        /* Handle adding service definition to monitored dir */
+        if Veles::list_services().count() > services.len() + services_err.len() {
+            debug!("Resetting service counters after detected changes in definitions ({} > {} + {})", Veles::list_services().count(), services.len(), services_err.len());
+            services.clear();
+            services_err.clear();
+        }
+
+        /* Handle removing service definition from monitored dir */
+        if Veles::list_services().count() < services.len() + services_err.len() {
+            debug!("Resetting service counters after detected changes in definitions ({} < {} + {})", Veles::list_services().count(), services.len(), services_err.len());
+            services.clear();
+            services_err.clear();
+        }
+
+        info!("{} - {} {}  /  {} - {} {}",
+            "watched services".green(),
+            format!("{:03}", services.len()).green().bold(),
+            format!("{:?}", services).green(),
+
+            "services with errors".red(),
+            format!("{:03}", services_err.len()).red().bold(),
+            format!("{:?}", services_err).red(),
+        );
+
         sleep(Duration::from_millis(CHECK_INTERVAL));
-        cycle_count += 1;
     }
 }
 
