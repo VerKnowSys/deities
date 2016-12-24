@@ -11,6 +11,26 @@ pub struct Perun;
 
 
 impl Perun {
+    fn try_pid_file(&self) -> Result<String, String> {
+        let path = self.clone().pid_file.unwrap();
+        match Service::load_raw(path.clone()) {
+            Ok(raw_content) => {
+                let content = raw_content.trim();
+                match content.parse::<i32>() {
+                    Ok(pid) => unsafe {
+                        match kill(pid, 0) {
+                            0 => Ok(format!("Service pid: {} from file: {}, is alive!", pid, path)),
+                            _ => Err(format!("Service pid: {} from file: {}, seems to be dead!", pid, path))
+                        }
+                    },
+                    Err(cause) =>
+                        Err(format!("Service pid from: {}, seems to be malformed: {}! Reason: {:?}", path, content, cause))
+                }
+            },
+            Err(cause) =>
+                Err(format!("Service has no pid file: {}! Reason: {:?}", path, cause)),
+        }
+    }
 
 
     fn try_unix_socket(path: String) -> Result<String, String> {
