@@ -1,0 +1,10 @@
+[package]
+name = "deities"
+description = "Deities is a magic around system services supervisor, launcher and auto configurator"
+version = "0.1.0"
+authors = ["Daniel (dmilith) Dettlaff <dmilith@me.com>"]
+
+[dependencies]
+toml = "0.2.1"
+glob = "0.2.11"
+rustc-serialize = "0.3"
