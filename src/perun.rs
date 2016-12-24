@@ -63,7 +63,7 @@ impl Perun for Service {
 
 
     fn checks_for(&self) -> Result<String, String> {
-        debug!("Perun::checks_for: {:?}", self);
+        debug!("{}", self);
 
         // perform Service checks:
         match self.unix_socket.clone() {
