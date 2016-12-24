@@ -52,7 +52,7 @@ impl Service {
     pub fn name(&self) -> String {
         match self.name.clone() {
             Some(name) => name,
-            None => "".to_string(),
+            None => "".to_string(), /* TODO: use definition file name fallback! */
         }
     }
 
