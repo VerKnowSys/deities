@@ -49,12 +49,16 @@ fn init_logger() {
     let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace);
 }
 
-    info!("Your {} are ready to serve you!", "deities".green().bold());
+
+fn main() {
+    init_logger();
+
+    info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
 
     let mut cycle_count = 0u64;
-    info!("Entering Veles main loop.. (check interval: {:4}ms)", CHECK_INTERVAL);
+    info!("{} main-loop. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
     loop {
-        debug!("---------< C{:06} >----------", cycle_count);
+        debug!("---------< C-{:06} >----------", cycle_count);
         for service_to_monitor in Veles::list_services() {
             match service_to_monitor.unwrap().file_name() {
                 Some(path) => {
