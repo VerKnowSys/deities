@@ -18,17 +18,17 @@ impl Perun {
             Ok(mut stream) => {
                 match stream.write_all(b"version") {
                     Err(cause) =>
-                        Err(format!("Service is not listening on UNIX socket: {:?}! Err cause: {:?}", path, cause)),
+                        Err(format!("Service is not listening on UNIX socket: {}! Reason: {:?}", path, cause)),
 
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("Service is listening on UNIX socket: {:?}.", path))
+                        Ok(format!("Service is listening on UNIX socket: {}", path))
                     },
                 }
             },
             Err(cause) =>
-                Err(format!("Service has no UNIX socket: {:?}! Err cause: {:?}", path, cause)),
+                Err(format!("Service has no UNIX socket: {}! Reason: {:?}", path, cause)),
         }
     }
 
@@ -53,7 +53,7 @@ impl Perun {
 
         // }
 
-        Ok("Checks passed".to_string())
+        Ok(format!("Checks passed for service: {}", service.name.unwrap_or(String::from("no-name-set"))))
     }
 
     // fn check_service(service: Service) -> Result<Service, String>;
