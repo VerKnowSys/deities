@@ -27,7 +27,8 @@ use perun::Perun;
 use common::*;
 
 
-fn main() {
+
+fn init_logger() {
     let logger_config = fern::DispatchConfig {
         format: Box::new(|message: &str, log_level: &log::LogLevel, _location: &log::LogLocation| {
             // This is a fairly simple format, though it's possible to do more complicated ones.
@@ -43,9 +44,10 @@ fn main() {
             format!("[{}] [{:5}] {}", tim, lev, msg)
         }),
         output: vec![fern::OutputConfig::stdout()], // , fern::OutputConfig::file("output.log")
-        level: log::LogLevelFilter::Debug,
+        level: log::LogLevelFilter::Trace,
     };
-    let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Debug);
+    let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace);
+}
 
     info!("Your {} are ready to serve you!", "deities".green().bold());
 
