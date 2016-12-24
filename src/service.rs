@@ -15,7 +15,7 @@ pub struct Service {
 
     /* Veles: */
     name: Option<String>,
-    dir: Option<String>,
+    work_dir: Option<String>,
 
 
     /* Svarog: */
@@ -31,10 +31,10 @@ pub struct Service {
     /* Perun: */
 
     // watch service availability through UNIX socket:
-    pub unix_socket: Option<String>,
+    unix_socket: Option<String>,
 
     // watch service availability through pid_file
-    pub pid_file: Option<String>,
+    pid_file: Option<String>,
 
     /// watch if service listens is a vector of URLs like: ["127.0.0.1:1234", "1.2.3.4:5000"]
     pub listens: Option<Vec<String>>,
@@ -52,8 +52,30 @@ impl Service {
     }
 
 
+    /// returns service working dir
     pub fn dir(&self) -> String {
-        self.dir.clone().unwrap_or(String::from("/tmp"))
+        match self.work_dir.clone() {
+            Some(path) => path,
+            None => "/tmp".to_string(),
+        }
+    }
+
+
+    /// returns service pid file to monitor
+    pub fn pid_file(&self) -> String {
+        match self.pid_file.clone() {
+            Some(path) => path,
+            None => "".to_string(),
+        }
+    }
+
+
+    /// returns path to unix socket to monitor
+    pub fn unix_socket(&self) -> String {
+        match self.unix_socket.clone() {
+            Some(path) => path,
+            None => "".to_string(),
+        }
     }
 
 
@@ -67,22 +89,17 @@ impl Service {
     }
 
 
+    /// loads raw file as String
     pub fn load_raw(file_name: String) -> Result<String, String> {
         match File::open(file_name.clone()) {
             Ok(mut file) => {
                 let mut buffer = String::new();
                 match file.read_to_string(&mut buffer) {
-                    Ok(_read_size) => {
-                        Ok(buffer.to_owned())
-                    },
-                    Err(error) => {
-                        Err(format!("Failed to read definition: {:?} {:?}", file, error))
-                    }
+                    Ok(_read_size) => Ok(buffer.to_owned()),
+                    Err(error) => Err(format!("Failed to read definition: {:?} {:?}", file, error))
                 }
             },
-            Err(cause) => {
-                Err(format!("Err for file: {:?}, cause: {:?}", file_name, cause))
-            }
+            Err(cause) => Err(format!("Err for file: {:?}, cause: {:?}", file_name, cause))
         }
     }
 
@@ -94,7 +111,7 @@ impl Default for Service {
         Service {
             /* Veles: */
             name: None,
-            dir: None,
+            work_dir: None,
 
             /* Svarog: */
             configure: None,
