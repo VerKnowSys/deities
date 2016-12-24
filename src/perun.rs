@@ -2,15 +2,23 @@ use std::os::unix::net::UnixStream;
 use std::io::prelude::*;
 
 use service::Service;
+use libc::*;
 
 
 /*
  * Perun is a supervisor deity
  */
-pub struct Perun;
+ pub trait Perun {
+    fn try_pid_file(&self) -> Result<String, String>;
+    fn try_unix_socket(&self) -> Result<String, String>;
+
+    fn checks_for(&self) -> Result<String, String>;
+}
 
 
-impl Perun {
+impl Perun for Service {
+
+
     fn try_pid_file(&self) -> Result<String, String> {
         let path = self.clone().pid_file.unwrap();
         match Service::load_raw(path.clone()) {
@@ -33,7 +41,8 @@ impl Perun {
     }
 
 
-    fn try_unix_socket(path: String) -> Result<String, String> {
+    fn try_unix_socket(&self) -> Result<String, String> {
+        let path = self.clone().unix_socket.unwrap();
         match UnixStream::connect(path.clone()) {
             Ok(mut stream) => {
                 match stream.write_all(b"version") {
@@ -53,15 +62,15 @@ impl Perun {
     }
 
 
-    pub fn checks_for(service: Service) -> Result<String, String> {
-        debug!("Perun::checks_for: {:?}", service);
+    fn checks_for(&self) -> Result<String, String> {
+        debug!("Perun::checks_for: {:?}", self);
 
         // perform Service checks:
-        match service.unix_socket {
+        match self.unix_socket.clone() {
             Some(unix_socket) => {
-                match Perun::try_unix_socket(unix_socket.clone()) {
+                match self.try_unix_socket() {
                     Ok(_) => {
-                        debug!("Successfully opened UNIX socket: {:?}", unix_socket);
+                        debug!("UNIX socket check passed for Service: {}, with unix_socket: {}", self.name(), unix_socket);
                     },
                     Err(err) => return Err(err),
                 }
@@ -69,32 +78,19 @@ impl Perun {
             None => {},
         }
 
-        // match service.pid_file {
+        match self.pid_file.clone() {
+            Some(pid_file) => {
+                match self.try_pid_file() {
+                    Ok(_) => {
+                        debug!("PID check passed for Service: {}, with pid_file: {}", self.name(), pid_file);
+                    },
+                    Err(err) => return Err(err),
+                }
+            },
+            None => {},
+        }
 
-        // }
-
-        Ok(format!("Checks passed for service: {}", service.name.unwrap_or(String::from("no-name-set"))))
+        Ok(format!("All checks passed for service: {}", self.name()))
     }
 
-    // fn check_service(service: Service) -> Result<Service, String>;
-
-    // fn check_name(service: Service) -> Result<String, String> {
-    //     match service.name.as_ref() {
-    //         "" => None,
-    //         an => Some(String::from(an)),
-    //     }
-    // }
-
-
-    // fn check_unix_socket(file_name: String) -> Option<String> {
-    //     match service.unix.as_ref() {
-    //         "" => None,
-    //         an => Some(String::from(an)),
-    //     }
-    // }
-
-    // fn check_pid_file(file_name: String) -> Option<String>;
-    // fn check_tcp_port(file_name: String) -> Option<usize>;
-    // fn check_udp_port(file_name: String) -> Option<usize>;
-    // fn check_domains(file_name: String) -> Option<Vec<String>>;
 }
