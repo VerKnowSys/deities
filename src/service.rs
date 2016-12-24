@@ -7,7 +7,7 @@ use std::fs::File;
  */
 
 
-#[derive(RustcDecodable, Debug)]
+#[derive(RustcDecodable, Debug, Clone)]
 pub struct Service {
 
     /* Veles: */
