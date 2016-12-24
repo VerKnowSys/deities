@@ -20,7 +20,7 @@ impl Perun for Service {
 
 
     fn try_pid_file(&self) -> Result<String, String> {
-        let path = self.clone().pid_file.unwrap();
+        let path = self.clone().pid_file();
         match Service::load_raw(path.clone()) {
             Ok(raw_content) => {
                 let content = raw_content.trim();
@@ -42,7 +42,7 @@ impl Perun for Service {
 
 
     fn try_unix_socket(&self) -> Result<String, String> {
-        let path = self.clone().unix_socket.unwrap();
+        let path = self.clone().unix_socket();
         match UnixStream::connect(path.clone()) {
             Ok(mut stream) => {
                 match stream.write_all(b"version") {
@@ -57,37 +57,26 @@ impl Perun for Service {
                 }
             },
             Err(cause) =>
-                Err(format!("Service: {} has no UNIX socket: {}! Reason: {:?}", self.name(), path, cause.kind())),
+                Err(format!("Service: {} has missing UNIX socket: {}! Reason: {:?}", self.name(), path, cause.kind())),
         }
     }
 
 
     fn checks_for(&self) -> Result<String, String> {
-        debug!("{}", self);
+        trace!("{}", self);
 
-        // perform Service checks:
-        match self.unix_socket.clone() {
-            Some(unix_socket) => {
-                match self.try_unix_socket() {
-                    Ok(_) => {
-                        debug!("UNIX socket check passed for Service: {}, with unix_socket: {}", self.name(), unix_socket);
-                    },
-                    Err(err) => return Err(err),
-                }
+        match self.try_unix_socket() {
+            Ok(_) => {
+                trace!("UNIX socket check passed for Service: {}, with unix_socket: {}", self.name(), self.unix_socket());
             },
-            None => {},
+            Err(err) => return Err(err),
         }
 
-        match self.pid_file.clone() {
-            Some(pid_file) => {
-                match self.try_pid_file() {
-                    Ok(_) => {
-                        debug!("PID check passed for Service: {}, with pid_file: {}", self.name(), pid_file);
-                    },
-                    Err(err) => return Err(err),
-                }
+        match self.try_pid_file() {
+            Ok(_) => {
+                trace!("PID check passed for Service: {}, with pid_file: {}", self.name(), self.pid_file());
             },
-            None => {},
+            Err(err) => return Err(err),
         }
 
         Ok(format!("All checks passed for service: {}", self))
