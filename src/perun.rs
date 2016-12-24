@@ -27,16 +27,16 @@ impl Perun for Service {
                 match content.parse::<i32>() {
                     Ok(pid) => unsafe {
                         match kill(pid, 0) {
-                            0 => Ok(format!("Service: {}, pid: {}, from file: {}, is alive!", self.name(), pid, path)),
-                            _ => Err(format!("Service: {}, pid: {}, from file: {}, seems to be dead!", self.name(), pid, path))
+                            0 => Ok(format!("Service: {}, pid: {}, from file: {}, is alive!", self, pid, path)),
+                            _ => Err(format!("Service: {}, pid: {}, from file: {}, seems to be dead!", self, pid, path))
                         }
                     },
                     Err(cause) =>
-                        Err(format!("Service: {}, pid from:, {}, seems to be malformed: {}! Reason: {}", self.name(), path, content, cause))
+                        Err(format!("Service: {}, pid from:, {}, seems to be malformed: {}! Reason: {}", self, self.pid_file(), content, cause))
                 }
             },
             Err(cause) =>
-                Err(format!("Service: {}, has no pid, file: {}! Reason: {}", self.name(), path, cause)),
+                Err(format!("Service: {}, has no pid, file: {}! Reason: {}", self, self.pid_file(), cause)),
         }
     }
 
@@ -47,17 +47,17 @@ impl Perun for Service {
             Ok(mut stream) => {
                 match stream.write_all(b"version") {
                     Err(cause) =>
-                        Err(format!("Service {}, is not listening on UNIX socket: {}! Reason: {:?}", self.name(), path, cause.kind())),
+                        Err(format!("Service {}, is not listening on UNIX socket: {}! Reason: {:?}", self, self.unix_socket(), cause.kind())),
 
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("Service {}, is listening on UNIX socket: {}", self.name(), path))
+                        Ok(format!("Service {}, is listening on UNIX socket: {}", self, self.unix_socket()))
                     },
                 }
             },
             Err(cause) =>
-                Err(format!("Service: {} has missing UNIX socket: {}! Reason: {:?}", self.name(), path, cause.kind())),
+                Err(format!("Service: {} has missing UNIX socket: {}! Reason: {:?}", self, self.unix_socket(), cause.kind())),
         }
     }
 
@@ -67,14 +67,14 @@ impl Perun for Service {
 
         match self.try_unix_socket() {
             Ok(_) => {
-                trace!("UNIX socket check passed for Service: {}, with unix_socket: {}", self.name(), self.unix_socket());
+                trace!("UNIX socket check passed for Service: {}, with unix_socket: {}", self, self.unix_socket());
             },
             Err(err) => return Err(err),
         }
 
         match self.try_pid_file() {
             Ok(_) => {
-                trace!("PID check passed for Service: {}, with pid_file: {}", self.name(), self.pid_file());
+                trace!("PID check passed for Service: {}, with pid_file: {}", self, self.pid_file());
             },
             Err(err) => return Err(err),
         }
