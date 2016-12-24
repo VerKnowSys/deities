@@ -29,15 +29,15 @@ fn main() {
     info!("Veles appeared!");
     loop {
         debug!("\n");
-        for svce in Veles::list_services() {
-            match svce.unwrap().file_name() {
-                Some(astr) => {
-                    match astr.to_str() {
-                        Some(service_file) => {
-                            match Service::load(service_file.to_string()) {
-                                Ok(service_ref) => {
-                                    let val: Option<Service> = decode_str(service_ref.as_ref());
-                                    match val {
+        for service_to_monitor in Veles::list_services() {
+            match service_to_monitor.unwrap().file_name() {
+                Some(path) => {
+                    match path.to_str() {
+                        Some(service_definition_file) => {
+                            match Service::load(service_definition_file.to_string()) {
+                                Ok(service_definition) => {
+                                    let service_config: Option<Service> = decode_str(service_definition.as_ref());
+                                    match service_config {
                                         Some(service) => {
                                             // perfom Perun checks
                                             match service.checks_for() {
@@ -48,24 +48,17 @@ fn main() {
                                                     error!("{:?}", error),
                                             }
                                         },
-                                        None => {
-                                            error!("Failed to load service file: {:?}. Please double check definition syntax since we're not validating it properly for now.", service_file);
-                                        }
+                                        None =>
+                                            error!("Failed to load service file: {:?}. Please double check definition syntax since we're not validating it properly for now.", service_definition_file)
                                     }
                                 },
-                                Err(error) => {
-                                    error!("Error {:?}", error);
-                                }
+                                Err(error) => error!("Error {:?}", error)
                             }
                         },
-                        None => {
-                            error!("No file?");
-                        }
+                        None => error!("No file! {:?}", path)
                     }
                 },
-                None => {
-                    error!("No access to read file?");
-                }
+                None => error!("No access to read service definition file?")
             }
         }
         sleep(Duration::from_millis(2000));
