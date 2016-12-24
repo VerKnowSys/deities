@@ -43,9 +43,22 @@ pub struct Service {
 
 impl Service {
 
+
+    pub fn name(&self) -> String {
+        self.name.clone().unwrap_or(String::from("Unnamed Service"))
+    }
+
     /// loads service definition from toml (ini) file
     pub fn load(name: String) -> Result<String, String> {
         let file_name = format!("/Services/{}", name.clone());
+        match Service::load_raw(file_name) {
+            Ok(content) => Ok(content),
+            Err(error) => Err(error),
+        }
+    }
+
+
+    pub fn load_raw(file_name: String) -> Result<String, String> {
         match File::open(file_name.clone()) {
             Ok(mut file) => {
                 let mut buffer = String::new();
@@ -63,6 +76,7 @@ impl Service {
             }
         }
     }
+
 }
 
 
