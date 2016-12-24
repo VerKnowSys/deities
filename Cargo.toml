@@ -13,3 +13,4 @@ colored = "1.4"
 fern = "0.3"
 time = "0.1"
 libc = "0.2"
+uuid = { version = "0.3", features = ["v4"] }
