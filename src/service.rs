@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::fmt;
 use std::fmt::Display;
+
 use common::*;
 
 
@@ -47,8 +48,12 @@ pub struct Service {
 impl Service {
 
 
+    /// returns service name
     pub fn name(&self) -> String {
-        self.name.clone().unwrap_or(String::from("Unnamed Service"))
+        match self.name.clone() {
+            Some(name) => name,
+            None => "".to_string(),
+        }
     }
 
 
