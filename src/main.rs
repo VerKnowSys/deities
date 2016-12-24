@@ -27,7 +27,24 @@ use log::LogLevel::*;
 
 
 fn main() {
-    env_logger::init().unwrap();
+    let logger_config = fern::DispatchConfig {
+        format: Box::new(|message: &str, log_level: &log::LogLevel, _location: &log::LogLocation| {
+            // This is a fairly simple format, though it's possible to do more complicated ones.
+            // This closure can contain any code, as long as it produces a String message.
+            let tim = time::now().strftime("%Y-%m-%d][%H:%M:%S").unwrap().to_string().black();
+            let (lev, msg) = match log_level {
+                &Error => (log_level.to_string().red(), message.red().bold()),
+                &Warn => (log_level.to_string().yellow(), message.yellow().bold()),
+                &Info => (log_level.to_string().white(), message.white()),
+                &Debug => (log_level.to_string().cyan(), message.cyan()),
+                &Trace => (log_level.to_string().magenta(), message.magenta()),
+            };
+            format!("[{}] [{:5}] {}", tim, lev, msg)
+        }),
+        output: vec![fern::OutputConfig::stdout()], // , fern::OutputConfig::file("output.log")
+        level: log::LogLevelFilter::Debug,
+    };
+    let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Debug);
 
     info!("Veles spawned!");
     loop {
