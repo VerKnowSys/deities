@@ -8,7 +8,7 @@ use libc::*;
 /*
  * Perun is a supervisor deity
  */
- pub trait Perun {
+pub trait Perun {
     fn try_pid_file(&self) -> Result<String, String>;
     fn try_unix_socket(&self) -> Result<String, String>;
 
@@ -27,16 +27,16 @@ impl Perun for Service {
                 match content.parse::<i32>() {
                     Ok(pid) => unsafe {
                         match kill(pid, 0) {
-                            0 => Ok(format!("Service pid: {} from file: {}, is alive!", pid, path)),
-                            _ => Err(format!("Service pid: {} from file: {}, seems to be dead!", pid, path))
+                            0 => Ok(format!("Service: {}, pid: {}, from file: {}, is alive!", self.name(), pid, path)),
+                            _ => Err(format!("Service: {}, pid: {}, from file: {}, seems to be dead!", self.name(), pid, path))
                         }
                     },
                     Err(cause) =>
-                        Err(format!("Service pid from: {}, seems to be malformed: {}! Reason: {:?}", path, content, cause))
+                        Err(format!("Service: {}, pid from:, {}, seems to be malformed: {}! Reason: {}", self.name(), path, content, cause))
                 }
             },
             Err(cause) =>
-                Err(format!("Service has no pid file: {}! Reason: {:?}", path, cause)),
+                Err(format!("Service: {}, has no pid, file: {}! Reason: {}", self.name(), path, cause)),
         }
     }
 
@@ -47,17 +47,17 @@ impl Perun for Service {
             Ok(mut stream) => {
                 match stream.write_all(b"version") {
                     Err(cause) =>
-                        Err(format!("Service is not listening on UNIX socket: {}! Reason: {:?}", path, cause)),
+                        Err(format!("Service {}, is not listening on UNIX socket: {}! Reason: {:?}", self.name(), path, cause.kind())),
 
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("Service is listening on UNIX socket: {}", path))
+                        Ok(format!("Service {}, is listening on UNIX socket: {}", self.name(), path))
                     },
                 }
             },
             Err(cause) =>
-                Err(format!("Service has no UNIX socket: {}! Reason: {:?}", path, cause)),
+                Err(format!("Service: {} has no UNIX socket: {}! Reason: {:?}", self.name(), path, cause.kind())),
         }
     }
 
@@ -90,7 +90,7 @@ impl Perun for Service {
             None => {},
         }
 
-        Ok(format!("All checks passed for service: {}", self.name()))
+        Ok(format!("All checks passed for service: {}", self))
     }
 
 }
