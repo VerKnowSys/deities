@@ -11,8 +11,8 @@ use std::fs::File;
 pub struct Service {
 
     /* Veles: */
-    pub name: Option<String>,
-    pub dir: Option<String>,
+    name: Option<String>,
+    dir: Option<String>,
 
 
     /* Svarog: */
@@ -47,6 +47,12 @@ impl Service {
     pub fn name(&self) -> String {
         self.name.clone().unwrap_or(String::from("Unnamed Service"))
     }
+
+
+    pub fn dir(&self) -> String {
+        self.dir.clone().unwrap_or(String::from("/tmp"))
+    }
+
 
     /// loads service definition from toml (ini) file
     pub fn load(name: String) -> Result<String, String> {
