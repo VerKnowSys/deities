@@ -1,5 +1,7 @@
 use std::io::prelude::*;
 use std::fs::File;
+use std::fmt;
+use std::fmt::Display;
 
 
 /*
@@ -108,5 +110,17 @@ impl Default for Service {
             listens: None,
             domains: None,
         }
+    }
+}
+
+
+impl Display for Service {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let slf = self.clone();
+        write!(f, "Service(name: {}, pid_file: {}, unix_socket: {})",
+            slf.name(),
+            slf.pid_file.unwrap_or("".to_string()),
+            slf.unix_socket.unwrap_or("".to_string())
+        )
     }
 }
