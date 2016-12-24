@@ -135,10 +135,16 @@ impl Default for Service {
 impl Display for Service {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let slf = self.clone();
-        write!(f, "Service(name: {}, pid_file: {}, unix_socket: {})",
-            slf.name(),
-            slf.pid_file.unwrap_or("".to_string()),
-            slf.unix_socket.unwrap_or("".to_string())
-        )
+
+        let optional_pid_entry = match slf.pid_file().as_ref() {
+            "" => "".to_string(),
+            _  => format!(", pid_file: {}", slf.pid_file()),
+        };
+        let optional_sock_entry = match slf.unix_socket().as_ref() {
+            "" => "".to_string(),
+            _  => format!(", unix_socket: {}", slf.unix_socket()),
+        };
+
+        write!(f, "Service(name: {}{})", slf.name(), format!("{}{}", optional_pid_entry, optional_sock_entry))
     }
 }
