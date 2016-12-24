@@ -1,13 +1,14 @@
 #[macro_use]
 extern crate log;
-extern crate env_logger;
+extern crate colored;
+extern crate fern;
 extern crate libc;
 extern crate rustc_serialize;
 extern crate toml;
 extern crate glob;
+extern crate time;
 
 
-mod common;
 pub mod service;
 pub mod svarog;
 pub mod perun;
@@ -20,13 +21,15 @@ use perun::Perun;
 
 use std::time::Duration;
 use std::thread::sleep;
-// use log::LogLevel;
+use colored::*;
+use log::LogLevel::*;
+
 
 
 fn main() {
     env_logger::init().unwrap();
 
-    info!("Veles appeared!");
+    info!("Veles spawned!");
     loop {
         debug!("\n");
         for service_to_monitor in Veles::list_services() {
