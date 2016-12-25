@@ -12,3 +12,6 @@ pub static SERVICES_DIR: &'static str = "/Services";
 
 /// Default glob match for file types we want to process as services configuration
 pub static SERVICES_GLOB: &'static str = "*.ini";
+
+/// default message contents sent via UNIX socket after connection
+pub static UNIX_SOCKET_MSG: &'static [u8; 7] = b"version";

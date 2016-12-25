@@ -47,7 +47,7 @@ impl Perun for Service {
         let path = self.clone().unix_socket();
         match UnixStream::connect(path.clone()) {
             Ok(mut stream) => {
-                match stream.write_all(b"version") {
+                match stream.write_all(UNIX_SOCKET_MSG) {
                     Err(cause) =>
                         Err(format!("{}, is not listening on UNIX socket: {}! Reason: {:?}", self.bold(), self.unix_socket(), cause.kind())),
 
