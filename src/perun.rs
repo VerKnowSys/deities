@@ -43,10 +43,10 @@ impl Perun for Service {
                         Ok(_) =>
                             trace!("Done request to: {} for: {}", url, self.styled()),
                         Err(cause) =>
-                            return Err(format!("Failure: {}, while checking URL: {} for: {}", cause, url, self.styled())),
+                            return Err(format!("Failure: {}, while checking URL: {}", cause, url)),
                     },
                 Err(error) =>
-                    return Err(format!("URL: {} failed: {} for: {}", url, error, self.styled()))
+                    return Err(format!("URL: {} failed: {}", url, error))
             }
         }
         let urls_to_ch = match self.urls().len() {
@@ -65,16 +65,16 @@ impl Perun for Service {
                 match content.parse::<i32>() {
                     Ok(pid) => unsafe {
                         match kill(pid, 0) {
-                            0 => Ok(format!("{}, pid: {}, from file: {}, is alive!", self.styled(), pid, path)),
-                            _ => Err(format!("{}, pid: {}, from file: {}, seems to be dead!", self.styled(), pid, path))
+                            0 => Ok(format!("PID: {}, from file: {}, is alive!", pid, self.pid_file())),
+                            _ => Err(format!("PID: {}, from file: {}, seems to be dead!", pid, self.pid_file())),
                         }
                     },
                     Err(cause) =>
-                        Err(format!("{}, pid from:, {}, seems to be malformed: {}! Reason: {}", self.styled(), self.pid_file(), content, cause))
+                        Err(format!("PID file: {}, seems to have malformed content: '{}'! Reason: {}", self.pid_file(), content, cause))
                 }
             },
             Err(cause) =>
-                Err(format!("{}, has no pid, file: {}! Reason: {}", self.styled(), self.pid_file(), cause)),
+                Err(format!("PID file: {} unaccessible or not existent. Reason: {}", self.pid_file(), cause)),
         }
     }
 
@@ -85,17 +85,17 @@ impl Perun for Service {
             Ok(mut stream) => {
                 match stream.write_all(UNIX_SOCKET_MSG) {
                     Err(cause) =>
-                        Err(format!("{}, is not listening on UNIX socket: {}! Reason: {:?}", self.styled(), self.unix_socket(), cause.kind())),
+                        Err(format!("Service not listening on UNIX socket: {}! Reason: {:?}", self.unix_socket(), cause.kind())),
 
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("{}, is listening on UNIX socket: {}", self.styled(), self.unix_socket()))
+                        Ok(format!("Service is listening on UNIX socket: {}", self.unix_socket()))
                     },
                 }
             },
             Err(cause) =>
-                Err(format!("Missing UNIX socket: {} for: {}! Reason: {:?}", self.unix_socket(), self.styled(), cause.kind())),
+                Err(format!("Missing UNIX socket file: {}! Reason: {:?}", self.unix_socket(), cause.kind())),
         }
     }
 
