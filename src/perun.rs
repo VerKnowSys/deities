@@ -103,6 +103,13 @@ impl Perun for Service {
     fn checks_for(&self) -> Result<String, String> {
         let mut checks_performed = 0;
 
+        match self.name().as_ref() {
+            "" =>
+                return Err(format!("Empty name set for: {}", self.styled())),
+            name =>
+                trace!("Service name set: {}", name.underline()),
+        }
+
         match self.unix_socket().as_ref() {
             "" => trace!("Undefined unix_socket for: {}", self.styled()),
             _  =>
