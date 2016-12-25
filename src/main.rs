@@ -57,24 +57,18 @@ fn init_logger() {
     match env::var(LOG_ENV) {
         Ok(val) => {
             match val.as_ref() {
-                "trace" => {
-                    init_global_logger(logger, LogLevelFilter::Trace).unwrap();
-                },
-                "debug" => {
-                    init_global_logger(logger, LogLevelFilter::Debug).unwrap();
-                },
-                "info" => {
-                    init_global_logger(logger, LogLevelFilter::Info).unwrap();
-                },
-                "warn" => {
-                    init_global_logger(logger, LogLevelFilter::Warn).unwrap();
-                },
-                "error" => {
-                    init_global_logger(logger, LogLevelFilter::Error).unwrap();
-                },
-                _ => {
-                    init_global_logger(logger, LogLevelFilter::Info).unwrap();
-                }
+                "trace" =>
+                    init_global_logger(logger, LogLevelFilter::Trace).unwrap(),
+                "debug" =>
+                    init_global_logger(logger, LogLevelFilter::Debug).unwrap(),
+                "info" =>
+                    init_global_logger(logger, LogLevelFilter::Info).unwrap(),
+                "warn" =>
+                    init_global_logger(logger, LogLevelFilter::Warn).unwrap(),
+                "error" =>
+                    init_global_logger(logger, LogLevelFilter::Error).unwrap(),
+                _ =>
+                    init_global_logger(logger, LogLevelFilter::Info).unwrap(),
             }
         },
         Err(_) => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
