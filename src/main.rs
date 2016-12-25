@@ -22,6 +22,7 @@ use colored::*;
 use log::LogLevel::*;
 use log::LogLevelFilter;
 use std::collections::HashSet;
+use fern::init_global_logger;
 use fern::{DispatchConfig, OutputConfig};
 use std::env;
 
@@ -32,6 +33,7 @@ use perun::Perun;
 use common::*;
 
 
+/// initialize internal logger
 fn init_logger() {
     let logger = DispatchConfig {
         format: Box::new(|message: &str, log_level: &log::LogLevel, _location: &log::LogLocation| {
@@ -56,30 +58,26 @@ fn init_logger() {
         Ok(val) => {
             match val.as_ref() {
                 "trace" => {
-                    let _ = fern::init_global_logger(logger, LogLevelFilter::Trace);
+                    init_global_logger(logger, LogLevelFilter::Trace).unwrap();
                 },
                 "debug" => {
-                    let _ = fern::init_global_logger(logger, LogLevelFilter::Debug);
+                    init_global_logger(logger, LogLevelFilter::Debug).unwrap();
                 },
                 "info" => {
-                    let _ = fern::init_global_logger(logger, LogLevelFilter::Info);
+                    init_global_logger(logger, LogLevelFilter::Info).unwrap();
                 },
                 "warn" => {
-                    let _ = fern::init_global_logger(logger, LogLevelFilter::Warn);
+                    init_global_logger(logger, LogLevelFilter::Warn).unwrap();
                 },
                 "error" => {
-                    let _ = fern::init_global_logger(logger, LogLevelFilter::Error);
+                    init_global_logger(logger, LogLevelFilter::Error).unwrap();
                 },
                 _ => {
-                    let _ = fern::init_global_logger(logger, LogLevelFilter::Info);
+                    init_global_logger(logger, LogLevelFilter::Info).unwrap();
                 }
             }
-
         },
-        Err(_) => {
-            let _ = fern::init_global_logger(logger, LogLevelFilter::Info);
-            debug!("Logger level variable: {} is unset", LOG_ENV);
-        }
+        Err(_) => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
     }
 
 }
@@ -93,7 +91,7 @@ fn main() {
     let mut services = HashSet::new();
     let mut services_err = HashSet::new();
     let mut cycle_count = 0u64;
-    debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
+    debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL_MS);
 
     loop {
         cycle_count += 1;
@@ -171,7 +169,7 @@ fn main() {
             errored
         );
 
-        sleep(Duration::from_millis(CHECK_INTERVAL));
+        sleep(Duration::from_millis(CHECK_INTERVAL_MS));
     }
 }
 
