@@ -3,6 +3,8 @@ use std::io::prelude::*;
 use libc::*;
 use colored::*;
 
+use curl::easy::Easy;
+
 use common::*;
 use service::Service;
 
@@ -13,12 +15,37 @@ use service::Service;
 pub trait Perun {
     fn try_pid_file(&self) -> Result<String, String>;
     fn try_unix_socket(&self) -> Result<String, String>;
+    fn try_urls(&self) -> Result<String, String>;
 
     fn checks_for(&self) -> Result<String, String>;
 }
 
 
 impl Perun for Service {
+
+
+    fn try_urls(&self) -> Result<String, String> {
+        for url in self.urls() {
+            // let mut dst = Vec::new();
+            let mut easy = Easy::new();
+            trace!("Making request to: {} for: {}", url, self.bold());
+            match easy.url(url.as_ref()) {
+                Ok(_) =>
+                    match easy.perform() {
+                        Ok(_) => {},
+                        Err(cause) =>
+                            return Err(format!("Failure: {}, while checking URL: {} for: {}", cause, url, self.bold())),
+                    },
+                Err(error) =>
+                    return Err(format!("URL: {} failed: {} for: {}", url, error, self.bold()))
+            }
+        }
+        let urls_to_ch = match self.urls().len() {
+            1 => "url",
+            _ => "urls",
+        };
+        Ok(format!("Ok - {} {} successfully checked for: {}", self.urls().len(), urls_to_ch, self.bold()))
+    }
 
 
     fn try_pid_file(&self) -> Result<String, String> {
@@ -90,6 +117,19 @@ impl Perun for Service {
                     Err(err) => return Err(err),
                 },
         }
+
+        if self.urls().len() > 0 {
+            match self.try_urls() {
+                Ok(_) => {
+                    checks_performed += 1;
+                    debug!("URLs check passed for: {}, with urls: {:?}", self.bold(), self.urls())
+                },
+                Err(err) => return Err(err),
+            }
+        } else {
+            trace!("Undefined urls for: {}", self.bold())
+        }
+
 
         trace!("performed {} checks for: {}", checks_performed, self.bold());
         let plu = match checks_performed {

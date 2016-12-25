@@ -90,6 +90,15 @@ impl Service {
     }
 
 
+    /// returns urls list to check
+    pub fn urls(&self) -> Vec<String> {
+        match self.urls.clone() {
+            Some(vector) => vector,
+            None => vec!(),
+        }
+    }
+
+
     /// loads service definition from toml (ini) file
     pub fn load(name: String) -> Result<String, String> {
         let file_name = format!("{}/{}", SERVICES_DIR, name.clone());
@@ -137,7 +146,7 @@ impl Default for Service {
             unix_socket: None,
             pid_file: None,
             listens: None,
-            domains: None,
+            urls: None,
         }
     }
 }
