@@ -59,7 +59,7 @@ impl Perun for Service {
                 }
             },
             Err(cause) =>
-                Err(format!("{} has missing UNIX socket: {}! Reason: {:?}", self.bold(), self.unix_socket(), cause.kind())),
+                Err(format!("Missing UNIX socket: {} for: {}! Reason: {:?}", self.unix_socket(), self.bold(), cause.kind())),
         }
     }
 
@@ -68,7 +68,7 @@ impl Perun for Service {
         let mut checks_performed = 0;
 
         match self.unix_socket().as_ref() {
-            "" => trace!("Undefined unix socket for: {}", self.bold()),
+            "" => trace!("Undefined unix_socket for: {}", self.bold()),
             _  =>
                 match self.try_unix_socket() {
                     Ok(_) => {
@@ -80,7 +80,7 @@ impl Perun for Service {
         }
 
         match self.pid_file().as_ref() {
-            "" => trace!("Undefined unix socket for: {}", self.bold()),
+            "" => trace!("Undefined pid_file for: {}", self.bold()),
             _  =>
                 match self.try_pid_file() {
                     Ok(_) => {
