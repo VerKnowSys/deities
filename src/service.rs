@@ -58,7 +58,7 @@ impl Service {
     }
 
 
-    pub fn bold(&self) -> ColoredString {
+    pub fn styled(&self) -> ColoredString {
         self.to_string().underline().italic()
     }
 

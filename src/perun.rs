@@ -41,19 +41,19 @@ impl Perun for Service {
                 Ok(_) =>
                     match easy.perform() {
                         Ok(_) =>
-                            trace!("Done request to: {} for: {}", url, self.bold()),
+                            trace!("Done request to: {} for: {}", url, self.styled()),
                         Err(cause) =>
-                            return Err(format!("Failure: {}, while checking URL: {} for: {}", cause, url, self.bold())),
+                            return Err(format!("Failure: {}, while checking URL: {} for: {}", cause, url, self.styled())),
                     },
                 Err(error) =>
-                    return Err(format!("URL: {} failed: {} for: {}", url, error, self.bold()))
+                    return Err(format!("URL: {} failed: {} for: {}", url, error, self.styled()))
             }
         }
         let urls_to_ch = match self.urls().len() {
             1 => "url",
             _ => "urls",
         };
-        Ok(format!("Ok - {} {} successfully checked for: {}", self.urls().len(), urls_to_ch, self.bold()))
+        Ok(format!("Ok - {} {} successfully checked for: {}", self.urls().len(), urls_to_ch, self.styled()))
     }
 
 
@@ -65,16 +65,16 @@ impl Perun for Service {
                 match content.parse::<i32>() {
                     Ok(pid) => unsafe {
                         match kill(pid, 0) {
-                            0 => Ok(format!("{}, pid: {}, from file: {}, is alive!", self.bold(), pid, path)),
-                            _ => Err(format!("{}, pid: {}, from file: {}, seems to be dead!", self.bold(), pid, path))
+                            0 => Ok(format!("{}, pid: {}, from file: {}, is alive!", self.styled(), pid, path)),
+                            _ => Err(format!("{}, pid: {}, from file: {}, seems to be dead!", self.styled(), pid, path))
                         }
                     },
                     Err(cause) =>
-                        Err(format!("{}, pid from:, {}, seems to be malformed: {}! Reason: {}", self.bold(), self.pid_file(), content, cause))
+                        Err(format!("{}, pid from:, {}, seems to be malformed: {}! Reason: {}", self.styled(), self.pid_file(), content, cause))
                 }
             },
             Err(cause) =>
-                Err(format!("{}, has no pid, file: {}! Reason: {}", self.bold(), self.pid_file(), cause)),
+                Err(format!("{}, has no pid, file: {}! Reason: {}", self.styled(), self.pid_file(), cause)),
         }
     }
 
@@ -85,17 +85,17 @@ impl Perun for Service {
             Ok(mut stream) => {
                 match stream.write_all(UNIX_SOCKET_MSG) {
                     Err(cause) =>
-                        Err(format!("{}, is not listening on UNIX socket: {}! Reason: {:?}", self.bold(), self.unix_socket(), cause.kind())),
+                        Err(format!("{}, is not listening on UNIX socket: {}! Reason: {:?}", self.styled(), self.unix_socket(), cause.kind())),
 
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("{}, is listening on UNIX socket: {}", self.bold(), self.unix_socket()))
+                        Ok(format!("{}, is listening on UNIX socket: {}", self.styled(), self.unix_socket()))
                     },
                 }
             },
             Err(cause) =>
-                Err(format!("Missing UNIX socket: {} for: {}! Reason: {:?}", self.unix_socket(), self.bold(), cause.kind())),
+                Err(format!("Missing UNIX socket: {} for: {}! Reason: {:?}", self.unix_socket(), self.styled(), cause.kind())),
         }
     }
 
@@ -104,24 +104,24 @@ impl Perun for Service {
         let mut checks_performed = 0;
 
         match self.unix_socket().as_ref() {
-            "" => trace!("Undefined unix_socket for: {}", self.bold()),
+            "" => trace!("Undefined unix_socket for: {}", self.styled()),
             _  =>
                 match self.try_unix_socket() {
                     Ok(_) => {
                         checks_performed += 1;
-                        debug!("UNIX socket check passed for: {}, with unix_socket: {}", self.bold(), self.unix_socket())
+                        debug!("UNIX socket check passed for: {}, with unix_socket: {}", self.styled(), self.unix_socket())
                     },
                     Err(err) => return Err(err),
                 },
         }
 
         match self.pid_file().as_ref() {
-            "" => trace!("Undefined pid_file for: {}", self.bold()),
+            "" => trace!("Undefined pid_file for: {}", self.styled()),
             _  =>
                 match self.try_pid_file() {
                     Ok(_) => {
                         checks_performed += 1;
-                        debug!("PID check passed for: {}, with pid_file: {}", self.bold(), self.pid_file())
+                        debug!("PID check passed for: {}, with pid_file: {}", self.styled(), self.pid_file())
                     },
                     Err(err) => return Err(err),
                 },
@@ -131,23 +131,23 @@ impl Perun for Service {
             match self.try_urls() {
                 Ok(_) => {
                     checks_performed += 1;
-                    debug!("URLs check passed for: {}, with urls: {:?}", self.bold(), self.urls())
+                    debug!("URLs check passed for: {}, with urls: {:?}", self.styled(), self.urls())
                 },
                 Err(err) => return Err(err),
             }
         } else {
-            trace!("Undefined urls for: {}", self.bold())
+            trace!("Undefined urls for: {}", self.styled())
         }
 
 
-        trace!("performed {} checks for: {}", checks_performed, self.bold());
+        trace!("performed {} checks for: {}", checks_performed, self.styled());
         let plu = match checks_performed {
             1 => "check",
             _ => "checks",
         };
         match checks_performed {
-            0 => Ok(format!("Ok ⇒ No {} for: {}", plu, self.bold())),
-            _ => Ok(format!("Ok ⇒ {} {} passed for: {}", format!("{:2}", checks_performed).bold(), plu, self.bold())),
+            0 => Ok(format!("Ok ⇒ No {} for: {}", plu, self.styled())),
+            _ => Ok(format!("Ok ⇒ {} {} passed for: {}", format!("{:2}", checks_performed).bold(), plu, self.styled())),
         }
     }
 
