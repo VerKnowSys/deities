@@ -14,3 +14,4 @@ fern = "0.3"
 time = "0.1"
 libc = "0.2"
 uuid = { version = "0.3", features = ["v4"] }
+curl = "0.4"
