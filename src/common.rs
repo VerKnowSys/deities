@@ -24,3 +24,11 @@ pub static LOG_ENV: &'static str = "LOG";
 
 /// default path to system cacert.pem (used by curl)
 pub static CACERT_PEM: &'static str = "/etc/ssl/cert.pem";
+
+/// default path to system cacert.pem (used by curl)
+pub static SLACK_WEBHOOK_URL: &'static str = "https://hooks.slack.com/services/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";
+
+/// default channel to post notifications
+pub static SLACK_ALERT_CHANNEL: &'static str = "#dev-status";
+
+
