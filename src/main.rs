@@ -8,6 +8,7 @@ extern crate toml;
 extern crate glob;
 extern crate time;
 extern crate uuid;
+extern crate curl;
 
 pub mod common;
 pub mod service;
@@ -19,7 +20,10 @@ use std::time::Duration;
 use std::thread::sleep;
 use colored::*;
 use log::LogLevel::*;
+use log::LogLevelFilter;
 use std::collections::HashSet;
+use fern::{DispatchConfig, OutputConfig};
+use std::env;
 
 use toml::decode_str;
 use service::Service;
@@ -29,7 +33,7 @@ use common::*;
 
 
 fn init_logger() {
-    let logger_config = fern::DispatchConfig {
+    let logger = DispatchConfig {
         format: Box::new(|message: &str, log_level: &log::LogLevel, _location: &log::LogLocation| {
             // This is a fairly simple format, though it's possible to do more complicated ones.
             // This closure can contain any code, as long as it produces a String message.
@@ -43,10 +47,41 @@ fn init_logger() {
             };
             format!("{} {:5} {}", tim, lev, msg)
         }),
-        output: vec![fern::OutputConfig::stdout()], // , fern::OutputConfig::file("output.log")
-        level: log::LogLevelFilter::Info,
+        output: vec![OutputConfig::stdout()], // , fern::OutputConfig::file("output.log")
+        level: LogLevelFilter::Trace,
     };
-    let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Info);
+
+    /* dynamic logger configuration */
+    match env::var(LOG_ENV) {
+        Ok(val) => {
+            match val.as_ref() {
+                "trace" => {
+                    let _ = fern::init_global_logger(logger, LogLevelFilter::Trace);
+                },
+                "debug" => {
+                    let _ = fern::init_global_logger(logger, LogLevelFilter::Debug);
+                },
+                "info" => {
+                    let _ = fern::init_global_logger(logger, LogLevelFilter::Info);
+                },
+                "warn" => {
+                    let _ = fern::init_global_logger(logger, LogLevelFilter::Warn);
+                },
+                "error" => {
+                    let _ = fern::init_global_logger(logger, LogLevelFilter::Error);
+                },
+                _ => {
+                    let _ = fern::init_global_logger(logger, LogLevelFilter::Info);
+                }
+            }
+
+        },
+        Err(_) => {
+            let _ = fern::init_global_logger(logger, LogLevelFilter::Info);
+            debug!("Logger level variable: {} is unset", LOG_ENV);
+        }
+    }
+
 }
 
 
@@ -61,7 +96,6 @@ fn main() {
     debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
 
     loop {
-        debug!("");
         cycle_count += 1;
         trace!("{} - {}", "check iteration".yellow(), format!("{:06}", cycle_count).yellow().bold());
 

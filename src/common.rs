@@ -15,3 +15,7 @@ pub static SERVICES_GLOB: &'static str = "*.ini";
 
 /// default message contents sent via UNIX socket after connection
 pub static UNIX_SOCKET_MSG: &'static [u8; 7] = b"version";
+
+/// default logger level env variable
+pub static LOG_ENV: &'static str = "LOG";
+
