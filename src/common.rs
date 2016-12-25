@@ -31,4 +31,11 @@ pub static SLACK_WEBHOOK_URL: &'static str = "https://hooks.slack.com/services/T
 /// default channel to post notifications
 pub static SLACK_ALERT_CHANNEL: &'static str = "#dev-status";
 
+/// default host to report as a fallback
+pub static DEFAULT_HOSTNAME: &'static str = "localhost";
 
+/// default link to remote vks logo file
+pub static DEFAULT_VKS_LOGO: &'static str = "http://dmilith.verknowsys.com/vks.png";
+
+/// default name of notifier bot
+pub static DEFAULT_NOTIFICATION_NAME: &'static str = "Failure Reporter";
