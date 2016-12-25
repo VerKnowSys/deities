@@ -2,8 +2,9 @@ use std::os::unix::net::UnixStream;
 use std::io::prelude::*;
 use libc::*;
 use colored::*;
-
 use curl::easy::Easy;
+use std::time::Duration;
+use std::path::Path;
 
 use common::*;
 use service::Service;
@@ -28,11 +29,19 @@ impl Perun for Service {
         for url in self.urls() {
             // let mut dst = Vec::new();
             let mut easy = Easy::new();
-            trace!("Making request to: {} for: {}", url, self.bold());
+            easy.connect_timeout(Duration::new(URLCHECK_TIMEOUT_S, 0)).unwrap();
+            easy.timeout(Duration::new(URLCHECK_TIMEOUT_S, 0)).unwrap();
+            easy.dns_cache_timeout(Duration::new(URLCHECK_TIMEOUT_S, 0)).unwrap();
+            easy.tcp_nodelay(true).unwrap();
+            easy.follow_location(true).unwrap();
+            easy.ssl_verify_host(true).unwrap();
+            easy.ssl_verify_peer(true).unwrap();
+            easy.cainfo(Path::new(CACERT_PEM)).unwrap();
             match easy.url(url.as_ref()) {
                 Ok(_) =>
                     match easy.perform() {
-                        Ok(_) => {},
+                        Ok(_) =>
+                            trace!("Done request to: {} for: {}", url, self.bold()),
                         Err(cause) =>
                             return Err(format!("Failure: {}, while checking URL: {} for: {}", cause, url, self.bold())),
                     },
