@@ -153,7 +153,7 @@ impl Perun for Service {
             _ => "checks",
         };
         match checks_performed {
-            0 => Ok(format!("Ok ⇒ No {} for: {}", plu, self.styled())),
+            0 => Err(format!("No {} defined for: {}", plu, self.styled())),
             _ => Ok(format!("Ok ⇒ {} {} passed for: {}", format!("{:2}", checks_performed).bold(), plu, self.styled())),
         }
     }
