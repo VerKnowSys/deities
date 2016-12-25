@@ -11,6 +11,7 @@ extern crate uuid;
 extern crate curl;
 extern crate slack_hook;
 extern crate chrono;
+extern crate hostname;
 
 pub mod common;
 pub mod service;
@@ -115,9 +116,8 @@ fn main() {
                                                         info!("{}", ok.green()),
 
                                                     Err(error) =>
-                                                        match Svarog::notification(format!(
-                                                            "Failed: {}. Reason: {}",
-                                                            service.to_string(), error)) {
+                                                        match service.notification(
+                                                            format!("Failed: {}", service.to_string()), error) {
                                                             Ok(msg) =>
                                                                 trace!("{}", msg),
                                                             Err(er) =>
