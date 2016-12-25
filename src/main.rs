@@ -21,10 +21,15 @@ use std::thread::sleep;
 use colored::*;
 use log::LogLevel::*;
 use log::LogLevelFilter;
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use fern::init_global_logger;
 use fern::{DispatchConfig, OutputConfig};
 use std::env;
+use std::sync::Arc;
+use std::thread;
+use std::thread::Builder;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use uuid::Uuid;
 
 use toml::decode_str;
 use service::Service;
@@ -41,8 +46,8 @@ fn init_logger() {
             // This closure can contain any code, as long as it produces a String message.
             let tim = time::now().strftime("%Y-%m-%d %H:%M:%S").unwrap().to_string().black().bold().dimmed();
             let (lev, msg) = match log_level {
-                &Error => (log_level.to_string().red().underline().dimmed(), message.red().bold()),
-                &Warn => (log_level.to_string().yellow().underline().dimmed(), message.yellow().bold()),
+                &Error => (log_level.to_string().red().underline().dimmed(), message.red().underline()),
+                &Warn => (log_level.to_string().yellow().underline().dimmed(), message.yellow().underline()),
                 &Info => (log_level.to_string().white().underline().dimmed(), message.white()),
                 &Debug => (log_level.to_string().cyan().underline().dimmed(), message.cyan()),
                 &Trace => (log_level.to_string().magenta().underline().dimmed(), message.magenta()),
@@ -81,87 +86,65 @@ fn main() {
     init_logger();
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
-
-    let mut services = HashSet::new();
-    let mut services_err = HashSet::new();
-    let mut cycle_count = 0u64;
     debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
 
+    let cycle_count = Arc::new(AtomicUsize::new(0));
     loop {
-        cycle_count += 1;
-        trace!("{} - {}", "check iteration".yellow(), format!("{:06}", cycle_count).yellow().bold());
+        cycle_count.fetch_add(1, Ordering::SeqCst);
 
         for service_to_monitor in Veles::list_services() {
-            match service_to_monitor.unwrap().file_name() {
-                Some(path) => {
-                    match path.to_str() {
-                        Some(service_definition_file) => {
-                            match Service::load(service_definition_file.to_string()) {
-                                Ok(service_definition) => {
-                                    let service_config: Option<Service> = decode_str(service_definition.as_ref());
-                                    match service_config {
-                                        Some(service) => {
-                                            // perfom Perun checks
-                                            match service.checks_for() {
-                                                Ok(ok) => {
-                                                    services_err.remove(&service.name());
-                                                    services.insert(service.name());
-                                                    debug!("{}", ok)
-                                                },
+            debug!("Iteration no. {}", format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
 
-                                                Err(error) => {
-                                                    services.remove(&service.name());
-                                                    services_err.insert(service.name());
-                                                    error!("{}", error)
+            let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
+            let handler = thread_builder.spawn( || {
+                debug!("Thread UUID: {}", thread::current().name().unwrap_or("NoName?").bold());
+                match service_to_monitor.unwrap().file_name() {
+                    Some(path) => {
+                        match path.to_str() {
+                            Some(service_definition_file) => {
+                                match Service::load(service_definition_file.to_string()) {
+                                    Ok(service_definition) => {
+                                        let service_config: Option<Service> = decode_str(service_definition.as_ref());
+                                        match service_config {
+                                            Some(service) => {
+                                                // perfom Perun checks
+                                                match service.checks_for() {
+                                                    Ok(ok) =>
+                                                        info!("{}", ok.green()),
+
+                                                    Err(error) =>
+                                                        error!("Monitoring check failed for: {}. Reason: {}",
+                                                            service.to_string().bold(),
+                                                            error.bold()),
                                                 }
+                                            },
+                                            None => {
+                                                error!("Failed to load service file: {:?}. Please double check definition syntax since we're not validating it properly for now.", service_definition_file)
                                             }
-                                        },
-                                        None => {
-                                            error!("Failed to load service file: {:?}. Please double check definition syntax since we're not validating it properly for now.", service_definition_file)
                                         }
+                                    },
+                                    Err(error) => {
+                                        error!("Definition load failure: {:?}", error)
                                     }
-                                },
-                                Err(error) => {
-                                    error!("Definition load failure: {:?}", error)
                                 }
-                            }
-                        },
-                        None => error!("No access to definition file! {:?}", path)
+                            },
+                            None => error!("No access to definition file! {:?}", path)
+                        }
+                    },
+                    None => error!("No access to read service definition file?")
+                }
+            });
+
+            match handler {
+                Ok(handle) => {
+                    match handle.join() {
+                        Ok(_) => debug!("Handler is joining threads.."),
+                        Err(cause) => error!("Failed joining threads! Cause: {:?}", cause),
                     }
                 },
-                None => error!("No access to read service definition file?")
+                Err(cause) => error!("Handler failed! Cause: {:?}", cause),
             }
         }
-
-        /* Handle adding service definition to monitored dir */
-        if Veles::list_services().count() > services.len() + services_err.len() {
-            debug!("Resetting service counters after detected changes in definitions ({} > {} + {})", Veles::list_services().count(), services.len(), services_err.len());
-            services.clear();
-            services_err.clear();
-        }
-
-        /* Handle removing service definition from monitored dir */
-        if Veles::list_services().count() < services.len() + services_err.len() {
-            debug!("Resetting service counters after detected changes in definitions ({} < {} + {})", Veles::list_services().count(), services.len(), services_err.len());
-            services.clear();
-            services_err.clear();
-        }
-
-        let errored = if services_err.len() > 0 {
-            format!(" /  {} {} {}",
-                "Service failures".red(),
-                format!("{:03}", services_err.len()).red().bold(),
-                format!("{:?}", services_err).red().italic())
-        } else {
-            "".to_string()
-        };
-
-        info!("{} - {} {} {}",
-            "Monitoring services".green(),
-            format!("{:03}", services.len()).green().bold(),
-            format!("{:?}", services).green().italic(),
-            errored
-        );
 
         sleep(Duration::from_millis(CHECK_INTERVAL));
     }
