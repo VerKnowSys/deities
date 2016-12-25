@@ -116,10 +116,10 @@ impl Service {
                 let mut buffer = String::new();
                 match file.read_to_string(&mut buffer) {
                     Ok(_read_size) => Ok(buffer.to_owned()),
-                    Err(error) => Err(format!("Failed to read definition: {:?} {:?}", file, error))
+                    Err(error) => Err(format!("Failed to read definition: {:?}. Reason: {}", file, error))
                 }
             },
-            Err(cause) => Err(format!("Err for file: {:?}, cause: {:?}", file_name, cause))
+            Err(cause) => Err(format!("Error loading file: {}. Reason: {}", file_name, cause))
         }
     }
 
