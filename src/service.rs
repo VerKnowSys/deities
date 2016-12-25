@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::fmt;
 use std::fmt::Display;
+use colored::*;
 
 use common::*;
 
@@ -54,6 +55,11 @@ impl Service {
             Some(name) => name,
             None => "".to_string(), /* TODO: use definition file name fallback! */
         }
+    }
+
+
+    pub fn bold(&self) -> ColoredString {
+        self.to_string().bold()
     }
 
 

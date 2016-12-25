@@ -3,6 +3,7 @@ use std::io::prelude::*;
 use libc::*;
 use colored::*;
 
+use common::*;
 use service::Service;
 
 
@@ -28,16 +29,16 @@ impl Perun for Service {
                 match content.parse::<i32>() {
                     Ok(pid) => unsafe {
                         match kill(pid, 0) {
-                            0 => Ok(format!("Service: {}, pid: {}, from file: {}, is alive!", self, pid, path)),
-                            _ => Err(format!("Service: {}, pid: {}, from file: {}, seems to be dead!", self, pid, path))
+                            0 => Ok(format!("{}, pid: {}, from file: {}, is alive!", self.bold(), pid, path)),
+                            _ => Err(format!("{}, pid: {}, from file: {}, seems to be dead!", self.bold(), pid, path))
                         }
                     },
                     Err(cause) =>
-                        Err(format!("Service: {}, pid from:, {}, seems to be malformed: {}! Reason: {}", self, self.pid_file(), content, cause))
+                        Err(format!("{}, pid from:, {}, seems to be malformed: {}! Reason: {}", self.bold(), self.pid_file(), content, cause))
                 }
             },
             Err(cause) =>
-                Err(format!("Service: {}, has no pid, file: {}! Reason: {}", self, self.pid_file(), cause)),
+                Err(format!("{}, has no pid, file: {}! Reason: {}", self.bold(), self.pid_file(), cause)),
         }
     }
 
@@ -48,17 +49,17 @@ impl Perun for Service {
             Ok(mut stream) => {
                 match stream.write_all(b"version") {
                     Err(cause) =>
-                        Err(format!("Service {}, is not listening on UNIX socket: {}! Reason: {:?}", self, self.unix_socket(), cause.kind())),
+                        Err(format!("{}, is not listening on UNIX socket: {}! Reason: {:?}", self.bold(), self.unix_socket(), cause.kind())),
 
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("Service {}, is listening on UNIX socket: {}", self, self.unix_socket()))
+                        Ok(format!("{}, is listening on UNIX socket: {}", self.bold(), self.unix_socket()))
                     },
                 }
             },
             Err(cause) =>
-                Err(format!("Service: {} has missing UNIX socket: {}! Reason: {:?}", self, self.unix_socket(), cause.kind())),
+                Err(format!("{} has missing UNIX socket: {}! Reason: {:?}", self.bold(), self.unix_socket(), cause.kind())),
         }
     }
 
@@ -67,37 +68,37 @@ impl Perun for Service {
         let mut checks_performed = 0;
 
         match self.unix_socket().as_ref() {
-            "" => trace!("Undefined unix socket for: {}", self),
+            "" => trace!("Undefined unix socket for: {}", self.bold()),
             _  =>
                 match self.try_unix_socket() {
                     Ok(_) => {
                         checks_performed += 1;
-                        debug!("UNIX socket check passed for Service: {}, with unix_socket: {}", self, self.unix_socket())
+                        debug!("UNIX socket check passed for: {}, with unix_socket: {}", self.bold(), self.unix_socket())
                     },
                     Err(err) => return Err(err),
                 },
         }
 
         match self.pid_file().as_ref() {
-            "" => trace!("Undefined unix socket for: {}", self),
+            "" => trace!("Undefined unix socket for: {}", self.bold()),
             _  =>
                 match self.try_pid_file() {
                     Ok(_) => {
                         checks_performed += 1;
-                        debug!("PID check passed for Service: {}, with pid_file: {}", self, self.pid_file())
+                        debug!("PID check passed for: {}, with pid_file: {}", self.bold(), self.pid_file())
                     },
                     Err(err) => return Err(err),
                 },
         }
 
-        trace!("performed {} checks for: {}", checks_performed, self);
+        trace!("performed {} checks for: {}", checks_performed, self.bold());
         let plu = match checks_performed {
             1 => "check",
             _ => "checks",
         };
         match checks_performed {
-            0 => Ok(format!("Ok ⇒ No {} for service: {}", plu, self)),
-            _ => Ok(format!("Ok ⇒ {} {} passed for service: {}", format!("{:2}", checks_performed).bold(), plu, self)),
+            0 => Ok(format!("Ok ⇒ No {} for: {}", plu, self.bold())),
+            _ => Ok(format!("Ok ⇒ {} {} passed for: {}", format!("{:2}", checks_performed).bold(), plu, self.bold())),
         }
     }
 
