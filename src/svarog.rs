@@ -3,7 +3,7 @@ use chrono::Local;
 use chrono::datetime::*;
 use slack_hook::SlackTextContent::{Text}; // Link
 use hostname::get_hostname;
-use uname::*;
+use uname::{uname, Info};
 
 use common::*;
 use service::Service;
@@ -14,8 +14,15 @@ use service::Service;
  */
 pub trait Svarog {
 
+    /// returns current hostname
     fn hostname(&self) -> String;
 
+
+    /// access to general system info
+    fn sys_info(&self) -> Info;
+
+
+    /// sends Slack alert notifications
     fn notification(&self, message: String, error: String) -> Result<String, String>;
 
 }
@@ -25,7 +32,6 @@ impl Svarog for Service {
 
 
     fn notification(&self, message: String, error: String) -> Result<String, String> {
-        let os_handler: Info = uname().unwrap();
         let local: DateTime<Local> = Local::now();
         let slack = Slack::new(SLACK_WEBHOOK_URL).unwrap();
         let p = PayloadBuilder::new()
@@ -49,10 +55,10 @@ impl Svarog for Service {
                             Field::new("Message:", message, Some(true)),
                             Field::new("Service details:", self.to_string(), Some(true)),
                             Field::new("", "", Some(false)),
-                            Field::new("Host name:", format!("{}", os_handler.nodename), Some(true)),
+                            Field::new("Host name:", format!("{}", self.sys_info().nodename), Some(true)),
                             Field::new(
                                 format!("System / Release / Machine / {}", NAME),
-                                format!("{} / {} / {} / {}", os_handler.sysname, os_handler.release, os_handler.machine, VERSION),
+                                format!("{} / {} / {} / {}", self.sys_info().sysname, self.sys_info().release, self.sys_info().machine, VERSION),
                                 Some(true)),
 
                             Field::new("", "", Some(true)),
@@ -94,6 +100,12 @@ impl Svarog for Service {
             Some(host) => host,
             None => DEFAULT_HOSTNAME.to_string(),
         }
+    }
+
+
+    // helper to read basic system information
+    fn sys_info(&self) -> Info {
+        uname().unwrap_or(Info::new().unwrap())
     }
 
 
