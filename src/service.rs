@@ -21,13 +21,13 @@ pub struct Service {
 
 
     /* Svarog: */
-    pub configure: Option<String>,
-    pub start: Option<String>,
-    pub after_start: Option<String>,
-    pub stop: Option<String>,
-    pub after_stop: Option<String>,
-    pub reload: Option<String>,
-    pub validate: Option<String>,
+    // pub configure: Option<String>,
+    // pub start: Option<String>,
+    // pub after_start: Option<String>,
+    // pub stop: Option<String>,
+    // pub after_stop: Option<String>,
+    // pub reload: Option<String>,
+    // pub validate: Option<String>,
 
 
     /* Perun: */
@@ -38,11 +38,11 @@ pub struct Service {
     // watch service availability through pid_file
     pid_file: Option<String>,
 
-    /// watch if service listens is a vector of URLs like: ["127.0.0.1:1234", "1.2.3.4:5000"]
-    pub listens: Option<Vec<String>>,
+    /// watch if service listens is a vector of IP:PORT elements like: ["127.0.0.1:1234", "1.2.3.4:5000"]
+    // listens: Option<Vec<String>>,
 
-    /// watch if service domains is a vector of FQDN like: ["my.shiny.domain.com/page2?param=1", "some.com"]
-    pub domains: Option<Vec<String>>,
+    /// watch if service domains is a vector of PROTO+FQDN elements like: ["https://my.shiny.domain.com/page2?param=1", "http://some.com"]
+    urls: Option<Vec<String>>,
 }
 
 
@@ -134,18 +134,18 @@ impl Default for Service {
             work_dir: None,
 
             /* Svarog: */
-            configure: None,
-            start: None,
-            after_start: None,
-            stop: None,
-            after_stop: None,
-            reload: None,
-            validate: None,
+            // configure: None,
+            // start: None,
+            // after_start: None,
+            // stop: None,
+            // after_stop: None,
+            // reload: None,
+            // validate: None,
 
             /* Perun: */
             unix_socket: None,
             pid_file: None,
-            listens: None,
+            // listens: None,
             urls: None,
         }
     }
