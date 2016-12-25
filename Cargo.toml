@@ -18,4 +18,5 @@ curl = "0.3"
 slack-hook = "0.2"
 chrono = "0.2"
 hostname = "0.1"
+uname = "0.1"
 

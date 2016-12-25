@@ -3,6 +3,7 @@ use chrono::Local;
 use chrono::datetime::*;
 use slack_hook::SlackTextContent::{Text}; // Link
 use hostname::get_hostname;
+use uname::*;
 
 use common::*;
 use service::Service;
@@ -24,6 +25,7 @@ impl Svarog for Service {
 
 
     fn notification(&self, message: String, error: String) -> Result<String, String> {
+        let os_handler: Info = uname().unwrap();
         let local: DateTime<Local> = Local::now();
         let slack = Slack::new(SLACK_WEBHOOK_URL).unwrap();
         let p = PayloadBuilder::new()
@@ -44,13 +46,17 @@ impl Svarog for Service {
                         vec![
                             Field::new("", "", Some(false)),
                             Field::new("", "", Some(false)),
-                            Field::new("Service details:", self.to_string(), Some(true)),
                             Field::new("Message:", message, Some(true)),
+                            Field::new("Service details:", self.to_string(), Some(true)),
                             Field::new("", "", Some(false)),
-                            Field::new("Host:", self.hostname(), Some(true)),
-                            Field::new("Type:", "Service", Some(true)),
-                            Field::new("", "", Some(false)),
-                            Field::new("Error cause:", error, Some(false)),
+                            Field::new("Host name:", format!("{}", os_handler.nodename), Some(true)),
+                            Field::new(
+                                format!("System / Release / Machine / {}", NAME),
+                                format!("{} / {} / {} / {}", os_handler.sysname, os_handler.release, os_handler.machine, VERSION),
+                                Some(true)),
+
+                            Field::new("", "", Some(true)),
+                            Field::new("Error details:", error, Some(false)),
                         ])
                     .ts(&local.naive_local())
                     .footer_icon(DEFAULT_VKS_LOGO)

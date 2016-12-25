@@ -12,6 +12,7 @@ extern crate curl;
 extern crate slack_hook;
 extern crate chrono;
 extern crate hostname;
+extern crate uname;
 
 pub mod common;
 pub mod service;
