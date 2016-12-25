@@ -33,7 +33,6 @@ use std::thread;
 use std::thread::Builder;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
-use toml::decode_str;
 
 use service::Service;
 use veles::Veles;
@@ -101,44 +100,37 @@ fn main() {
 
             let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
             let handler = thread_builder.spawn( || {
-                debug!("Thread UUID: {}", thread::current().name().unwrap_or("NoName?").bold());
+                debug!("Thread UUID: {}", thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
                 match service_to_monitor.unwrap().file_name() {
                     Some(path) => {
                         match path.to_str() {
                             Some(service_definition_file) => {
-                                match Service::load(service_definition_file.to_string()) {
-                                    Ok(service_definition) => {
-                                        let service_config: Option<Service> = decode_str(service_definition.as_ref());
-                                        match service_config {
-                                            Some(service) => {
-                                                // perfom Perun checks
-                                                match service.checks_for() {
-                                                    Ok(ok) =>
-                                                        info!("{}", ok.green()),
+                                match Service::new_from(service_definition_file.to_string()) {
+                                    // perfom Perun checks on service definition:
+                                    Ok(service) => {
+                                        match service.checks_for() {
+                                            Ok(ok) =>
+                                                info!("{}", ok.green()),
 
-                                                    Err(error) =>
-                                                        match service.notification(
-                                                            format!("Failed: {}", service.to_string()), error) {
-                                                            Ok(msg) =>
-                                                                trace!("{}", msg),
-                                                            Err(er) =>
-                                                                error!("{}", er),
-                                                        },
-                                                }
-                                            },
-                                            None => {
-                                                error!("Failed to load service file: {:?}. Please double check definition syntax since we're not validating it properly for now.", service_definition_file)
-                                            }
+                                            Err(error) =>
+                                                match service.notification(
+                                                    format!("Failed: {}", service.to_string()), error) {
+                                                    Ok(msg) =>
+                                                        trace!("{}", msg),
+                                                    Err(er) =>
+                                                        error!("{}", er),
+                                                },
                                         }
                                     },
-                                    Err(error) => {
-                                        error!("Definition load failure: {:?}", error)
-                                    }
+
+                                    Err(reason) => error!("Definition load failure: {:?}", reason),
                                 }
                             },
-                            None => error!("No access to definition file! {:?}", path)
+
+                            None => error!("Unable to open service file in path: {:?}", path),
                         }
                     },
+
                     None => error!("No access to read service definition file?")
                 }
             });

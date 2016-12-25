@@ -3,6 +3,7 @@ use std::fs::File;
 use std::fmt;
 use std::fmt::Display;
 use colored::*;
+use toml::decode_str;
 
 use common::*;
 
@@ -17,7 +18,6 @@ pub struct Service {
 
     /* Veles: */
     name: Option<String>,
-    work_dir: Option<String>,
 
 
     /* Svarog: */
@@ -31,6 +31,12 @@ pub struct Service {
 
 
     /* Perun: */
+
+    /// service main service configuration file
+    conf_file: Option<String>,
+
+    /// determines directory to jump - before starting service
+    work_dir: Option<String>,
 
     // watch service availability through UNIX socket:
     unix_socket: Option<String>,
@@ -47,6 +53,46 @@ pub struct Service {
 
 
 impl Service {
+
+
+    pub fn new_from(file_name: String) -> Result<Service, String> {
+        match Service::load_definition(file_name.clone()) {
+            Ok(service_definition) => {
+                let service_config: Option<Service> = decode_str(service_definition.as_ref());
+                match service_config {
+                    Some(service) => Ok(service),
+                    None => Err(format!("Couldn't load definition from file: {}", file_name))
+                }
+            },
+
+            Err(cause) => Err(cause),
+        }
+    }
+
+
+    /// loads raw file as String
+    pub fn load_raw(file_name: String) -> Result<String, String> {
+        match File::open(file_name.clone()) {
+            Ok(mut file) => {
+                let mut buffer = String::new();
+                match file.read_to_string(&mut buffer) {
+                    Ok(_read_size) => Ok(buffer.to_owned()),
+                    Err(error) => Err(format!("Failed to read definition file: {}. Reason: {:?}", file_name, error.kind()))
+                }
+            },
+            Err(cause) => Err(format!("Error loading file: {}. Reason: {:?}", file_name, cause.kind()))
+        }
+    }
+
+
+    /// loads service definition from toml (ini) file
+    pub fn load_definition(def_name: String) -> Result<String, String> {
+        let def_abspath = format!("{}/{}", SERVICES_DIR, def_name.clone());
+        match Service::load_raw(def_abspath) {
+            Ok(content) => Ok(content),
+            Err(error) => Err(error),
+        }
+    }
 
 
     /// returns service name
@@ -98,31 +144,6 @@ impl Service {
         }
     }
 
-
-    /// loads service definition from toml (ini) file
-    pub fn load(name: String) -> Result<String, String> {
-        let file_name = format!("{}/{}", SERVICES_DIR, name.clone());
-        match Service::load_raw(file_name) {
-            Ok(content) => Ok(content),
-            Err(error) => Err(error),
-        }
-    }
-
-
-    /// loads raw file as String
-    pub fn load_raw(file_name: String) -> Result<String, String> {
-        match File::open(file_name.clone()) {
-            Ok(mut file) => {
-                let mut buffer = String::new();
-                match file.read_to_string(&mut buffer) {
-                    Ok(_read_size) => Ok(buffer.to_owned()),
-                    Err(error) => Err(format!("Failed to read definition: {:?}. Reason: {}", file, error))
-                }
-            },
-            Err(cause) => Err(format!("Error loading file: {}. Reason: {}", file_name, cause))
-        }
-    }
-
 }
 
 
@@ -143,6 +164,7 @@ impl Default for Service {
             // validate: None,
 
             /* Perun: */
+            conf_file: None,
             unix_socket: None,
             pid_file: None,
             // listens: None,
