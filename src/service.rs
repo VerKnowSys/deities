@@ -59,7 +59,7 @@ impl Service {
 
 
     pub fn bold(&self) -> ColoredString {
-        self.to_string().bold()
+        self.to_string().underline().italic()
     }
 
 
