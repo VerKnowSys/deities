@@ -9,6 +9,8 @@ extern crate glob;
 extern crate time;
 extern crate uuid;
 extern crate curl;
+extern crate slack_hook;
+extern crate chrono;
 
 pub mod common;
 pub mod service;
@@ -21,7 +23,6 @@ use std::thread::sleep;
 use colored::*;
 use log::LogLevel::*;
 use log::LogLevelFilter;
-// use std::collections::HashSet;
 use fern::init_global_logger;
 use fern::{DispatchConfig, OutputConfig};
 use std::env;
@@ -30,11 +31,12 @@ use std::thread;
 use std::thread::Builder;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
-
 use toml::decode_str;
+
 use service::Service;
 use veles::Veles;
 use perun::Perun;
+use svarog::Svarog;
 use common::*;
 
 
@@ -113,9 +115,14 @@ fn main() {
                                                         info!("{}", ok.green()),
 
                                                     Err(error) =>
-                                                        error!("Monitoring check failed for: {}. Reason: {}",
-                                                            service.to_string().bold(),
-                                                            error.bold()),
+                                                        match Svarog::notification(format!(
+                                                            "Failed: {}. Reason: {}",
+                                                            service.to_string(), error)) {
+                                                            Ok(msg) =>
+                                                                trace!("{}", msg),
+                                                            Err(er) =>
+                                                                error!("{}", er),
+                                                        },
                                                 }
                                             },
                                             None => {
@@ -138,7 +145,7 @@ fn main() {
             match handler {
                 Ok(handle) => {
                     match handle.join() {
-                        Ok(_) => debug!("Handler is joining threads.."),
+                        Ok(_) => trace!("Handler is joining threads.."),
                         Err(cause) => error!("Failed joining threads! Cause: {:?}", cause),
                     }
                 },
