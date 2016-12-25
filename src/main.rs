@@ -33,20 +33,20 @@ fn init_logger() {
         format: Box::new(|message: &str, log_level: &log::LogLevel, _location: &log::LogLocation| {
             // This is a fairly simple format, though it's possible to do more complicated ones.
             // This closure can contain any code, as long as it produces a String message.
-            let tim = time::now().strftime("%Y-%m-%d][%H:%M:%S").unwrap().to_string().black();
+            let tim = time::now().strftime("%Y-%m-%d %H:%M:%S").unwrap().to_string().black().bold().dimmed();
             let (lev, msg) = match log_level {
-                &Error => (log_level.to_string().red(), message.red().bold()),
-                &Warn => (log_level.to_string().yellow(), message.yellow().bold()),
-                &Info => (log_level.to_string().white(), message.white()),
-                &Debug => (log_level.to_string().cyan(), message.cyan()),
-                &Trace => (log_level.to_string().magenta(), message.magenta()),
+                &Error => (log_level.to_string().red().underline().dimmed(), message.red().bold()),
+                &Warn => (log_level.to_string().yellow().underline().dimmed(), message.yellow().bold()),
+                &Info => (log_level.to_string().white().underline().dimmed(), message.white()),
+                &Debug => (log_level.to_string().cyan().underline().dimmed(), message.cyan()),
+                &Trace => (log_level.to_string().magenta().underline().dimmed(), message.magenta()),
             };
-            format!("[{}] [{:5}] {}", tim, lev, msg)
+            format!("{} {:5} {}", tim, lev, msg)
         }),
         output: vec![fern::OutputConfig::stdout()], // , fern::OutputConfig::file("output.log")
-        level: log::LogLevelFilter::Trace,
+        level: log::LogLevelFilter::Info,
     };
-    let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace);
+    let _ = fern::init_global_logger(logger_config, log::LogLevelFilter::Info);
 }
 
 
@@ -121,14 +121,20 @@ fn main() {
             services_err.clear();
         }
 
-        info!("{} - {} {}  /  {} - {} {}",
-            "watched services".green(),
-            format!("{:03}", services.len()).green().bold(),
-            format!("{:?}", services).green(),
+        let errored = if services_err.len() > 0 {
+            format!(" /  {} {} {}",
+                "Service failures".red(),
+                format!("{:03}", services_err.len()).red().bold(),
+                format!("{:?}", services_err).red().italic())
+        } else {
+            "".to_string()
+        };
 
-            "services with errors".red(),
-            format!("{:03}", services_err.len()).red().bold(),
-            format!("{:?}", services_err).red(),
+        info!("{} - {} {} {}",
+            "Monitoring services".green(),
+            format!("{:03}", services.len()).green().bold(),
+            format!("{:?}", services).green().italic(),
+            errored
         );
 
         sleep(Duration::from_millis(CHECK_INTERVAL));
