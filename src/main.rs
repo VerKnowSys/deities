@@ -91,7 +91,7 @@ fn main() {
     let mut services = HashSet::new();
     let mut services_err = HashSet::new();
     let mut cycle_count = 0u64;
-    debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL_MS);
+    debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
 
     loop {
         cycle_count += 1;
@@ -169,7 +169,7 @@ fn main() {
             errored
         );
 
-        sleep(Duration::from_millis(CHECK_INTERVAL_MS));
+        sleep(Duration::from_millis(CHECK_INTERVAL));
     }
 }
 

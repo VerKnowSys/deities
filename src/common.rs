@@ -5,11 +5,10 @@ pub const NAME: &'static str = "Deities";
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 /// Veles endless loop pause interval
-pub static CHECK_INTERVAL_MS: u64 = 500;
+pub static CHECK_INTERVAL: u64 = 500;
 
 /// timeouts for connection, transfer and dns cache for curl
-pub static URLCHECK_TIMEOUT_S: u64 = 3;
-
+pub static URLCHECK_TIMEOUT: u64 = 3000;
 
 /// Default dir containing services configuration
 pub static SERVICES_DIR: &'static str = "/Services";

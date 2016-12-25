@@ -29,9 +29,9 @@ impl Perun for Service {
         for url in self.urls() {
             // let mut dst = Vec::new();
             let mut easy = Easy::new();
-            easy.connect_timeout(Duration::new(URLCHECK_TIMEOUT_S, 0)).unwrap();
-            easy.timeout(Duration::new(URLCHECK_TIMEOUT_S, 0)).unwrap();
-            easy.dns_cache_timeout(Duration::new(URLCHECK_TIMEOUT_S, 0)).unwrap();
+            easy.connect_timeout(Duration::from_millis(URLCHECK_TIMEOUT)).unwrap();
+            easy.timeout(Duration::from_millis(URLCHECK_TIMEOUT)).unwrap();
+            easy.dns_cache_timeout(Duration::from_millis(URLCHECK_TIMEOUT)).unwrap();
             easy.tcp_nodelay(true).unwrap();
             easy.follow_location(true).unwrap();
             easy.ssl_verify_host(true).unwrap();
