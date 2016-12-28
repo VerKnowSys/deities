@@ -1,3 +1,6 @@
+use std::io::prelude::*;
+use std::fs::File;
+use std::os::unix::fs::PermissionsExt;
 use std::thread::sleep;
 use std::time::Duration;
 use std::process::{Command, Stdio};
@@ -13,12 +16,57 @@ use service::Service;
  */
 pub trait Veles {
 
+    fn create_shell_wrapper(&self, commands: String) -> String;
+
     fn start_service(&self) -> Result<u32, String>;
 
 }
 
 
 impl Veles for Service {
+
+
+    fn create_shell_wrapper(&self, commands: String) -> String {
+        let wrapper = format!("{}/{}.sh", SERVICES_DIR, self.name());
+        match File::create(wrapper.clone()) {
+            Ok(mut file) => {
+                match file.write(b"#!/bin/sh\n") {
+                    Ok(_) => {
+                        match file.write(commands.as_bytes()) {
+                            Ok(_) => {
+                                match file.flush() {
+                                    Ok(_) => trace!("Flushed successfully"),
+                                    Err(fe) => error!("Flush failed! Reason: {}", fe)
+                                }
+                            },
+                            Err(we) => {
+                                error!("Write2 error!. Reason: {}", we)
+                            }
+                        }
+                    },
+                    Err(we) => {
+                        error!("Write1 error!. Reason: {}", we)
+                    }
+                }
+
+                match file.metadata() {
+                    Ok(metadata) => {
+                        let mut permissions = metadata.permissions();
+                        permissions.set_mode(0o777);
+                        trace!("Wrapper executable bits set for {}!", self.name())
+                    },
+                    Err(e) => {
+                        error!("Can't set mode! Reason: {}", e)
+                    }
+                }
+            },
+            Err(e) => {
+                error!("create_shell_wrapper: {}", e)
+            }
+        }
+        wrapper
+    }
+
 
     fn start_service(&self) -> Result<u32, String> {
         let mut cmd = Command::new(DEFAULT_SHELL);
