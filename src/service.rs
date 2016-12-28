@@ -24,6 +24,7 @@ pub struct Service {
     /* Svarog: */
     // pub configure: Option<String>,
     // pub start: Option<String>,
+    pub start: Option<Vec<String>>,
     // pub after_start: Option<String>,
     // pub stop: Option<String>,
     // pub after_stop: Option<String>,
@@ -176,6 +177,7 @@ impl Default for Service {
             /* Svarog: */
             // configure: None,
             // start: None,
+            start: None,
             // after_start: None,
             // stop: None,
             // after_stop: None,
