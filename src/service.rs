@@ -128,7 +128,7 @@ impl Service {
 
 
     /// returns service working dir
-    pub fn dir(&self) -> String {
+    pub fn work_dir(&self) -> String {
         match self.work_dir.clone() {
             Some(path) => path,
             None => "/tmp".to_string(),
