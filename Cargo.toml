@@ -1,8 +1,8 @@
 [package]
 name = "deities"
-description = "Deities is a magic around system services supervisor, launcher and auto configurator"
-version = "0.2.3"
 authors = ["Daniel (dmilith) Dettlaff <dmilith@me.com>"]
+description = "Deities are three Slavic gods - Perun (supervisor), Veles (service spawner), Svarog (low level smith)"
+version = "0.4.0"
 
 [dependencies]
 toml = "0.2"
