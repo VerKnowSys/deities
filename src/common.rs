@@ -39,3 +39,6 @@ pub static DEFAULT_VKS_LOGO: &'static str = "http://dmilith.verknowsys.com/vks.p
 
 /// default name of notifier bot
 pub static DEFAULT_NOTIFICATION_NAME: &'static str = "Failure Reporter";
+
+/// default shell to spawn command with
+pub static DEFAULT_SHELL: &'static str = "/bin/sh";
