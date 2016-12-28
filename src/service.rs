@@ -18,7 +18,8 @@ pub struct Service {
 
     /* Veles: */
     name: Option<String>,
-
+    user: Option<String>,
+    group: Option<String>,
 
     /* Svarog: */
     // pub configure: Option<String>,
@@ -104,6 +105,22 @@ impl Service {
     }
 
 
+    pub fn user(&self) -> String {
+        match self.user.clone() {
+            Some(name) => name,
+            None => "nobody".to_string(),
+        }
+    }
+
+
+    pub fn group(&self) -> String {
+        match self.group.clone() {
+            Some(group) => group,
+            None => "nogroup".to_string(),
+        }
+    }
+
+
     pub fn styled(&self) -> ColoredString {
         self.to_string().underline().italic()
     }
@@ -152,6 +169,8 @@ impl Default for Service {
         Service {
             /* Veles: */
             name: None,
+            user: None,
+            group: None,
             work_dir: None,
 
             /* Svarog: */
