@@ -125,12 +125,17 @@ fn main() {
                                                 info!("{}", ok.green()),
 
                                             Err(error) => {
-                                                match service.notification(
-                                                    format!("Failed: {}", service.to_string()), error) {
-                                                    Ok(msg) =>
-                                                        trace!("Notification sent: {}", msg),
-                                                    Err(er) =>
-                                                        error!("{}", er),
+                                                if SLACK_WEBHOOK_URL == "" {
+                                                    warn!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
+                                                    error!("Failed: {}. Reason: {}", service.to_string(), error);
+                                                } else {
+                                                    match service.notification(
+                                                        format!("Failed: {}", service.to_string()), error) {
+                                                        Ok(msg) =>
+                                                            trace!("Notification sent: {}", msg),
+                                                        Err(er) =>
+                                                            error!("{}", er),
+                                                    }
                                                 }
 
                                                 // notification sent, now try handling service process
