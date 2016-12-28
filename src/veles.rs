@@ -26,7 +26,7 @@ impl Veles for Service {
         match self.start {
             Some(ref commands) => {
                 trace!("Built command line: {:?}", commands);
-                cmd.args(commands.as_slice());
+                // cmd.args(commands.as_slice());
                 cmd.current_dir(self.work_dir());
 
                 // NOTE: always set stdin to null:
