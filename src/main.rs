@@ -85,6 +85,15 @@ fn init_logger() {
 }
 
 
+fn list_services() -> Paths {
+    glob(
+        &format!("{}/{}", SERVICES_DIR, SERVICES_GLOB)
+    ).expect(
+        &format!("Failed to match {}/{}", SERVICES_DIR, SERVICES_GLOB)
+    )
+}
+
+
 fn main() {
     init_logger();
 
@@ -95,7 +104,7 @@ fn main() {
     loop {
         cycle_count.fetch_add(1, Ordering::SeqCst);
 
-        for service_to_monitor in Veles::list_services() {
+        for service_to_monitor in list_services() {
             debug!("Iteration no. {}", format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
 
             let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
