@@ -73,9 +73,11 @@ impl Veles for Service {
         cmd.arg("-c");
         match self.start {
             Some(ref commands) => {
-                trace!("Built command line: {:?}", commands);
-                // cmd.args(commands.as_slice());
+                // NOTE: single command - a wrapper:
+                cmd.arg(self.create_shell_wrapper(commands.to_string()));
+
                 cmd.current_dir(self.work_dir());
+                trace!("Built command line: {:?} for working dir: {}", commands, self.work_dir());
 
                 // NOTE: always set stdin to null:
                 cmd.stdin(Stdio::null());
