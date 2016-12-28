@@ -13,6 +13,7 @@ extern crate slack_hook;
 extern crate chrono;
 extern crate hostname;
 extern crate uname;
+extern crate users;
 
 pub mod common;
 pub mod service;
@@ -33,9 +34,11 @@ use std::thread;
 use std::thread::Builder;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
+use glob::glob;
+use glob::Paths;
 
-use service::Service;
 use veles::Veles;
+use service::Service;
 use perun::Perun;
 use svarog::Svarog;
 use common::*;
@@ -121,14 +124,22 @@ fn main() {
                                             Ok(ok) =>
                                                 info!("{}", ok.green()),
 
-                                            Err(error) =>
+                                            Err(error) => {
                                                 match service.notification(
                                                     format!("Failed: {}", service.to_string()), error) {
                                                     Ok(msg) =>
-                                                        trace!("{}", msg),
+                                                        trace!("Notification sent: {}", msg),
                                                     Err(er) =>
                                                         error!("{}", er),
-                                                },
+                                                }
+
+                                                // notification sent, now try handling service process
+                                                match service.start_service() {
+                                                    Ok(_) => warn!("Service started."),
+                                                    Err(cause) => error!("Failed to start service. Reason: {}", cause),
+                                                }
+
+                                            },
                                         }
                                     },
 
