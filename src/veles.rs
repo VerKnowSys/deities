@@ -1,5 +1,5 @@
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs::{set_permissions, File};
 use std::os::unix::fs::PermissionsExt;
 use std::thread::sleep;
 use std::time::Duration;
@@ -48,12 +48,14 @@ impl Veles for Service {
                         error!("Write1 error!. Reason: {}", we)
                     }
                 }
-
                 match file.metadata() {
                     Ok(metadata) => {
                         let mut permissions = metadata.permissions();
                         permissions.set_mode(0o777);
-                        trace!("Wrapper executable bits set for {}!", self.name())
+                        match set_permissions(wrapper.clone(), permissions) {
+                            Ok(_) => trace!("Wrapper executable bits set for {:?}!", file),
+                            Err(fail) => error!("Failure setting permissions: {}", fail),
+                        }
                     },
                     Err(e) => {
                         error!("Can't set mode! Reason: {}", e)
