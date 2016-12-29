@@ -10,6 +10,9 @@ pub static CHECK_INTERVAL: u64 = 3000;
 /// timeouts for connection, transfer and dns cache for curl
 pub static URLCHECK_TIMEOUT: u64 = 10000;
 
+/// pause after each signal sent by death_watch to get rid of live pid
+pub static DEFAULT_DEATHWATCH_INTERVAL: u64 = 2000;
+
 /// Default dir containing services configuration
 pub static SERVICES_DIR: &'static str = "/Services";
 
