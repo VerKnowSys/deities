@@ -68,7 +68,8 @@ impl Service {
 
 
     pub fn new_from(file_name: String) -> Result<Service, Mortal> {
-        match Service::load_definition(file_name.clone()) {
+        let def_abspath = format!("{}/{}", SERVICES_DIR, file_name.clone());
+        match Service::load_definition(def_abspath) {
             Ok(service_definition) => {
                 let service_config: Option<Service> = decode_str(service_definition.as_ref());
                 match service_config {
@@ -97,9 +98,8 @@ impl Service {
 
 
     /// loads service definition from toml (ini) file
-    pub fn load_definition(def_name: String) -> Result<String, Mortal> {
-        let def_abspath = format!("{}/{}", SERVICES_DIR, def_name.clone());
-        match Service::load_raw(def_abspath) {
+    pub fn load_definition(abs_path_to_file: String) -> Result<String, Mortal> {
+        match Service::load_raw(abs_path_to_file) {
             Ok(content) => Ok(content),
             Err(error) => Err(error),
         }
