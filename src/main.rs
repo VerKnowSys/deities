@@ -14,6 +14,7 @@ extern crate chrono;
 extern crate hostname;
 extern crate uname;
 extern crate users;
+extern crate fs2;
 
 pub mod common;
 pub mod service;
@@ -36,6 +37,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
 use glob::glob;
 use glob::Paths;
+use std::fs::File;
+use fs2::FileExt;
 
 use veles::Veles;
 use service::Service;
@@ -99,6 +102,26 @@ fn list_services() -> Paths {
 
 fn main() {
     init_logger();
+
+    let lockfile = match File::open(DEFAULT_LOCK) {
+        Ok(file) => file,
+        Err(_) => match File::create(DEFAULT_LOCK) {
+            Ok(file) => file,
+            Err(cause) => {
+                error!("Lock error: {}", cause);
+                panic!("Lock panic!")
+            }
+        }
+    };
+
+    info!("Waiting for lock file: {}", DEFAULT_LOCK);
+    match lockfile.lock_exclusive() {
+        Ok(_) => info!("Lock file acquired: {}", DEFAULT_LOCK),
+        Err(cause) => {
+            error!("Lock error: {}", cause);
+            panic!("Lock panic!")
+        },
+    }
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
     debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
