@@ -30,7 +30,7 @@ impl Veles for Service {
         let wrapper = format!("{}/.{}.sh", SERVICES_DIR, self.name());
         match File::create(wrapper.clone()) {
             Ok(mut file) => {
-                match file.write(b"#!/bin/sh\n") {
+                match file.write(format!("#!/bin/sh\nPATH={}", DEFAULT_PATH).as_bytes()) {
                     Ok(_) => {
                         match file.write(commands.as_bytes()) {
                             Ok(_) => {
