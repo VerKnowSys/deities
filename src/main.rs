@@ -39,6 +39,10 @@ use glob::glob;
 use glob::Paths;
 use std::fs::File;
 use fs2::FileExt;
+use users::{Users, UsersCache};
+// use users::os::unix::{UserExt, GroupExt};
+// use users::os::bsd::UserExt as BSDUserExt;
+
 
 use veles::Veles;
 use service::Service;
@@ -103,9 +107,15 @@ fn list_services() -> Paths {
 fn main() {
     init_logger();
 
-    let lockfile = match File::open(DEFAULT_LOCK) {
+    let users = UsersCache::new();
+    let lock_name = match users.get_current_uid() {
+        0 => DEFAULT_LOCK.to_string(),
+        _ => format!("{}{}", env::var("HOME").unwrap_or("/tmp".to_string()), DEFAULT_LOCK),
+    };
+
+    let lockfile = match File::open(lock_name.clone()) {
         Ok(file) => file,
-        Err(_) => match File::create(DEFAULT_LOCK) {
+        Err(_) => match File::create(lock_name.clone()) {
             Ok(file) => file,
             Err(cause) => {
                 error!("Lock creation error: {}", cause);
@@ -116,9 +126,9 @@ fn main() {
         }
     };
 
-    debug!("Trying for lock file: {}", DEFAULT_LOCK);
+    debug!("Trying for lock file: {}", lock_name);
     match lockfile.try_lock_exclusive() {
-        Ok(_) => info!("Lock file acquired: {}", DEFAULT_LOCK),
+        Ok(_) => info!("Lock file acquired: {}", lock_name),
         Err(_) => {
             error!("Lock file already acquired. {} is already running!", NAME);
             unsafe {
