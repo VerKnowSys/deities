@@ -159,9 +159,7 @@ fn main() {
                                     // perfom Perun checks on service definition:
                                     Ok(service) => {
                                         match service.checks_for() {
-                                            Ok(ok) =>
-                                                info!("{}", ok.green()),
-
+                                            Ok(ok) => info!("{}", ok),
                                             Err(error) => {
                                                 if SLACK_WEBHOOK_URL == "" {
                                                     warn!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
