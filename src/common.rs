@@ -5,7 +5,7 @@ pub const NAME: &'static str = "Deities";
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 /// Veles endless loop pause interval
-pub static CHECK_INTERVAL: u64 = 10000;
+pub static CHECK_INTERVAL: u64 = 3000;
 
 /// timeouts for connection, transfer and dns cache for curl
 pub static URLCHECK_TIMEOUT: u64 = 10000;
