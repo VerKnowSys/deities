@@ -236,7 +236,7 @@ impl Display for Service {
             "" => "".to_string(),
             _  => format!(", unix_socket: {}", slf.unix_socket()),
         };
-        let optional_urls_entries = match slf.urls().iter().map(|vec| format!("{}, ", vec)).collect::<String>() {
+        let optional_urls_entries = match slf.urls().join(", ") {
             urls => if urls.len() > 0 {
                 format!(", urls: [{}]", urls)
             } else {
