@@ -12,6 +12,9 @@ use service::Service;
 pub enum Mortal {
 
     /// Successes:
+    OkAllChecks{service: Service, amount: i32},
+    OkUrlsChecks{service: Service},
+    OkUnixSockCheck{service: Service},
     OkPidAlive{service: Service, pid: i32},
     OkPidInterrupted{service: Service, pid: i32},
     OkPidAlreadyInterrupted{service: Service, pid: i32},
@@ -45,6 +48,9 @@ pub enum Mortal {
 impl Display for Mortal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Mortal: {}", match self {
+            &Mortal::OkAllChecks{ref service, ref amount} => format!("Ok: {} successfully passed all: {} checks!", service, amount),
+            &Mortal::OkUrlsChecks{ref service} => format!("Ok: {} successfully passed URLs checks!", service),
+            &Mortal::OkUnixSockCheck{ref service} => format!("Ok: {} successfully passed UNIX sock checks!", service),
             &Mortal::OkPidAlive{ref service, ref pid} => format!("Ok: Alive pid: {} of service: {}", pid, service),
             &Mortal::OkPidInterrupted{ref service, ref pid} => format!("Ok: Interrupted pid: {} of service: {}", pid, service),
             &Mortal::OkPidAlreadyInterrupted{ref service, ref pid} => format!("Ok: Already interrupted pid: {} of service: {}", pid, service),
