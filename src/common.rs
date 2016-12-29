@@ -8,7 +8,7 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub static CHECK_INTERVAL: u64 = 10000;
 
 /// timeouts for connection, transfer and dns cache for curl
-pub static URLCHECK_TIMEOUT: u64 = 3000;
+pub static URLCHECK_TIMEOUT: u64 = 10000;
 
 /// Default dir containing services configuration
 pub static SERVICES_DIR: &'static str = "/Services";
