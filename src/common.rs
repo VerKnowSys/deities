@@ -43,5 +43,8 @@ pub static DEFAULT_NOTIFICATION_NAME: &'static str = "Failure Reporter";
 /// default shell to spawn command with
 pub static DEFAULT_SHELL: &'static str = "/bin/sh";
 
-/// default shell to spawn command with
+/// default PATH for service
 pub static DEFAULT_PATH: &'static str = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
+
+/// default lock file
+pub static DEFAULT_LOCK: &'static str = "/.deities.lock";
