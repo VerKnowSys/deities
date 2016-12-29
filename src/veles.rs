@@ -27,10 +27,10 @@ impl Veles for Service {
 
 
     fn create_shell_wrapper(&self, commands: String) -> String {
-        let wrapper = format!("{}/{}.sh", SERVICES_DIR, self.name());
+        let wrapper = format!("{}/.{}.sh", SERVICES_DIR, self.name());
         match File::create(wrapper.clone()) {
             Ok(mut file) => {
-                match file.write(b"#!/bin/sh\n") {
+                match file.write(format!("#!/bin/sh\nexport PATH={}\n", DEFAULT_PATH).as_bytes()) {
                     Ok(_) => {
                         match file.write(commands.as_bytes()) {
                             Ok(_) => {
@@ -92,7 +92,7 @@ impl Veles for Service {
                         cmd.uid(uid.uid());
                     },
                     None => {
-                        debug!("Username {} not found in system!", self.user())
+                        warn!("Username {} not found in system!", self.user())
                     }
                 }
 
@@ -102,17 +102,15 @@ impl Veles for Service {
                         cmd.gid(gid.gid());
                     },
                     None => {
-                        debug!("Username {} not found in system!", self.group())
+                        warn!("Username {} not found in system!", self.group())
                     }
                 }
 
                 match cmd.spawn() {
                     Ok(mut child) => {
                         let pid = child.id();
-                        warn!("NOTE: Service is supposed to go in background!");
-                        child.wait().unwrap();
-                        sleep(Duration::from_millis(100));
-                        debug!("Service got pid: {}", pid);
+                        warn!("NOTE: Service is supposed to go in background (daemonize)!");
+                        child.wait().expect("Service should spawn in background!");
                         Ok(pid)
                     }
                     Err(e) => {
