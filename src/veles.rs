@@ -100,7 +100,7 @@ impl Veles for Service {
 
                 match get_user_by_name(self.user().as_ref()) {
                     Some(uid) => {
-                        trace!("Setting service UID of valid user: {:?}", uid.uid());
+                        trace!("Setting service UID of valid user: {}", uid.name());
                         cmd.uid(uid.uid());
                     },
                     None => {
@@ -110,7 +110,7 @@ impl Veles for Service {
 
                 match get_group_by_name(self.group().as_ref()) {
                     Some(gid) => {
-                        trace!("Setting service GID of valid group: {:?}", gid.name());
+                        trace!("Setting service GID of valid group: {}", gid.name());
                         cmd.gid(gid.gid());
                     },
                     None => {
