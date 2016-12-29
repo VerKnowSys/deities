@@ -4,6 +4,7 @@ use std::fmt::Display;
 
 use std::io::Error;
 use curl::Error as CurlError;
+use slack_hook::Error as SlackError;
 use std::num::ParseIntError;
 
 
@@ -26,6 +27,11 @@ pub enum Mortal {
     CheckPidfileUnaccessible{service: Service, cause: Error},
     CheckUnixSocket{service: Service, cause: Error},
     CheckUnixSocketMissing{service: Service, cause: Error},
+
+    ServiceNoStartDefined{service: Service},
+    ServiceStartFailure{service: Service, cause: Error},
+
+    NotificationFailure{cause: SlackError},
 }
 
 
@@ -48,6 +54,11 @@ impl Display for Mortal {
             &Mortal::CheckPidfileUnaccessible{ref service, ref cause} => format!("Cannot access pid file for: {}. Reason: {}!", service, cause),
             &Mortal::CheckUnixSocket{ref service, ref cause} => format!("Couldn't connect through UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
             &Mortal::CheckUnixSocketMissing{ref service, ref cause} => format!("Missing expected UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
+
+            &Mortal::ServiceNoStartDefined{ref service} => format!("No 'start' value in configuration of: {}!", service),
+            &Mortal::ServiceStartFailure{ref service, ref cause} => format!("Failed to launch commands: {} for {}! Reason: {}", service.clone().start.unwrap_or("#no-commands".to_string()), service, cause),
+
+            &Mortal::NotificationFailure{ref cause} => format!("Failed to send notification! Reason: {}", cause),
         })
     }
 }
