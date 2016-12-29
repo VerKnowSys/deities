@@ -199,11 +199,11 @@ fn main() {
             match handler {
                 Ok(handle) => {
                     match handle.join() {
-                        Ok(_) => trace!("Handler is joining threads.."),
-                        Err(cause) => error!("Failed joining threads! Cause: {:?}", cause),
+                        Ok(_) => trace!("Handler joined service threads of finished iteration: {}", cycle_count.load(Ordering::SeqCst)),
+                        Err(cause) => error!("Failed joining threads! Internal cause: {:?}", cause),
                     }
                 },
-                Err(cause) => error!("Handler failed! Cause: {:?}", cause),
+                Err(cause) => error!("Handler failed! Cause: {}", cause),
             }
         }
 
