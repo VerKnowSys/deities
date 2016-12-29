@@ -108,18 +108,22 @@ fn main() {
         Err(_) => match File::create(DEFAULT_LOCK) {
             Ok(file) => file,
             Err(cause) => {
-                error!("Lock error: {}", cause);
-                panic!("Lock panic!")
+                error!("Lock creation error: {}", cause);
+                unsafe {
+                    libc::exit(libc::EPERM);
+                }
             }
         }
     };
 
-    info!("Waiting for lock file: {}", DEFAULT_LOCK);
-    match lockfile.lock_exclusive() {
+    debug!("Trying for lock file: {}", DEFAULT_LOCK);
+    match lockfile.try_lock_exclusive() {
         Ok(_) => info!("Lock file acquired: {}", DEFAULT_LOCK),
-        Err(cause) => {
-            error!("Lock error: {}", cause);
-            panic!("Lock panic!")
+        Err(_) => {
+            error!("Lock file already acquired. {} is already running!", NAME);
+            unsafe {
+                libc::exit(libc::EWOULDBLOCK);
+            }
         },
     }
 
@@ -163,7 +167,7 @@ fn main() {
 
                                                 // notification sent, now try handling service process
                                                 match service.start_service() {
-                                                    Ok(_) => info!("Service started."),
+                                                    Ok(_) => info!("Service started: {}", service.name().green().bold()),
                                                     Err(cause) => error!("Failed to start service. Reason: {}", cause),
                                                 }
 
