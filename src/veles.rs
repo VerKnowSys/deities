@@ -7,6 +7,8 @@ use users::{get_user_by_name, get_group_by_name};
 
 use common::*;
 use service::Service;
+use mortal::Mortal;
+use mortal::Mortal::*;
 
 
 /*
@@ -16,7 +18,7 @@ pub trait Veles {
 
     fn create_shell_wrapper(&self, commands: String) -> String;
 
-    fn start_service(&self) -> Result<u32, String>;
+    fn start_service(&self) -> Result<u32, Mortal>;
 
 }
 
@@ -80,7 +82,7 @@ impl Veles for Service {
     }
 
 
-    fn start_service(&self) -> Result<u32, String> {
+    fn start_service(&self) -> Result<u32, Mortal> {
         let mut cmd = Command::new(DEFAULT_SHELL);
         cmd.arg("-c");
         match self.start {
@@ -124,13 +126,12 @@ impl Veles for Service {
                         Ok(pid)
                     }
                     Err(e) => {
-                        error!("Failed to spawn command: {:?}. Reason: {}", cmd, e);
-                        Err("Failed".to_string())
+                        error!("Failed to spawn commands: {:?}. Reason: {}", cmd, e);
+                        Err(ServiceStartFailure{service: self.clone(), cause: e})
                     }
                 }
             },
-            None =>
-                Err(format!("No start commands defined for service: {}", self)),
+            None => Err(ServiceNoStartDefined{service: self.clone()}),
         }
     }
 }
