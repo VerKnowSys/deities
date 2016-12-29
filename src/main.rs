@@ -18,6 +18,7 @@ extern crate fs2;
 
 pub mod common;
 pub mod service;
+pub mod mortal;
 pub mod svarog;
 pub mod perun;
 pub mod veles;
@@ -166,7 +167,7 @@ fn main() {
                                                     warn!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
                                                 } else {
                                                     match service.notification(
-                                                        format!("malfunction of: {}", service.to_string()), error.clone()) {
+                                                        format!("malfunction of: {}", service.to_string()), error.to_string()) {
                                                         Ok(msg) =>
                                                             trace!("Notification sent: {}", msg),
                                                         Err(er) =>
