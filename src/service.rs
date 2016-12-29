@@ -5,8 +5,10 @@ use std::fmt::Display;
 use colored::*;
 use toml::decode_str;
 use std::io::{Error, ErrorKind};
+use std::env;
 
 use common::*;
+use svarog::Svarog;
 use mortal::Mortal;
 use mortal::Mortal::*;
 
@@ -115,7 +117,11 @@ impl Service {
     pub fn user(&self) -> String {
         match self.user.clone() {
             Some(name) => name,
-            None => "nobody".to_string(),
+            None =>
+                match env::var("USER") {
+                    Ok(somebody) => somebody.to_owned(),
+                    Err(_) => "nobody".to_string(),
+                },
         }
     }
 
