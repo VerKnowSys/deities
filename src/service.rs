@@ -6,6 +6,7 @@ use colored::*;
 use toml::decode_str;
 use std::io::{Error, ErrorKind};
 use std::env;
+use regex::Regex;
 
 use common::*;
 use svarog::Svarog;
@@ -109,7 +110,11 @@ impl Service {
     pub fn name(&self) -> String {
         match self.name.clone() {
             Some(name) => name,
-            None => "".to_string(),
+            None => {
+                // cut off file extension and use it as default service name:
+                let rx = Regex::new(r"\..*$").unwrap();
+                rx.replace_all(self.ini_file().as_ref(), "").to_owned()
+            },
         }
     }
 
