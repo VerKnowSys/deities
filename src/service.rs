@@ -73,7 +73,6 @@ impl Service {
                     None => Err(DefinitionDecodeFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, "Definition parse error! (detailed parse errors NYD!)".to_string())}),
                 }
             },
-
             Err(cause) => Err(DefinitionLoadFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, cause.to_string())}),
         }
     }
@@ -108,7 +107,7 @@ impl Service {
     pub fn name(&self) -> String {
         match self.name.clone() {
             Some(name) => name,
-            None => "".to_string(), /* TODO: use definition file name fallback! */
+            None => "".to_string(),
         }
     }
 
