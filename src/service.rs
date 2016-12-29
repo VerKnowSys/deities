@@ -236,12 +236,9 @@ impl Display for Service {
             "" => "".to_string(),
             _  => format!(", unix_socket: {}", slf.unix_socket()),
         };
-        let optional_urls_entries = match slf.urls().join(", ") {
-            urls => if urls.len() > 0 {
-                format!(", urls: [{}]", urls)
-            } else {
-                "".to_string()
-            }
+        let optional_urls_entries = match slf.urls().len() {
+            0 => "".to_string(),
+            _ => format!(", urls: [{}]", slf.urls().join(", ")),
         };
 
         write!(f, "{}", format!("Service(name: {}, ini: {}{}{}{})",
