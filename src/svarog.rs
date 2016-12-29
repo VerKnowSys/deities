@@ -7,6 +7,8 @@ use uname::{uname, Info};
 
 use common::*;
 use service::Service;
+use mortal::Mortal;
+use mortal::Mortal::*;
 
 
 /*
@@ -23,7 +25,7 @@ pub trait Svarog {
 
 
     /// sends Slack alert notifications
-    fn notification(&self, message: String, error: String) -> Result<String, String>;
+    fn notification(&self, message: String, error: String) -> Result<String, Mortal>;
 
 }
 
@@ -31,7 +33,7 @@ pub trait Svarog {
 impl Svarog for Service {
 
 
-    fn notification(&self, message: String, error: String) -> Result<String, String> {
+    fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
         let local: DateTime<Local> = Local::now();
         let slack = Slack::new(SLACK_WEBHOOK_URL).unwrap();
         let p = PayloadBuilder::new()
@@ -89,7 +91,7 @@ impl Svarog for Service {
             Ok(()) =>
                 Ok("Notifiication sent".to_string()),
             Err(cause) =>
-                Err(format!("Notification send failure: {:?}", cause)),
+                Err(NotificationFailure{cause: cause}),
         }
     }
 

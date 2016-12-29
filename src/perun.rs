@@ -5,8 +5,11 @@ use colored::*;
 use curl::easy::Easy;
 use std::time::Duration;
 use std::path::Path;
+use std::io::{Error, ErrorKind};
 
 use common::*;
+use mortal::Mortal;
+use mortal::Mortal::*;
 use service::Service;
 
 
@@ -14,18 +17,18 @@ use service::Service;
  * Perun is a supervisor deity
  */
 pub trait Perun {
-    fn try_pid_file(&self) -> Result<String, String>;
-    fn try_unix_socket(&self) -> Result<String, String>;
-    fn try_urls(&self) -> Result<String, String>;
+    fn try_pid_file(&self) -> Result<String, Mortal>;
+    fn try_unix_socket(&self) -> Result<String, Mortal>;
+    fn try_urls(&self) -> Result<String, Mortal>;
 
-    fn checks_for(&self) -> Result<String, String>;
+    fn checks_for(&self) -> Result<String, Mortal>;
 }
 
 
 impl Perun for Service {
 
 
-    fn try_urls(&self) -> Result<String, String> {
+    fn try_urls(&self) -> Result<String, Mortal> {
         for url in self.urls() {
             // let mut dst = Vec::new();
             let mut easy = Easy::new();
@@ -40,13 +43,10 @@ impl Perun for Service {
             match easy.url(url.as_ref()) {
                 Ok(_) =>
                     match easy.perform() {
-                        Ok(_) =>
-                            trace!("Done request to: {} for: {}", url, self.styled()),
-                        Err(cause) =>
-                            return Err(format!("Failure: {}, while checking URL: {}", cause, url)),
+                        Ok(_) => trace!("Done request to: {} for: {}", url, self.styled()),
+                        Err(cause) => return Err(CheckURL{service: self.clone(), url: url, cause: cause}),
                     },
-                Err(error) =>
-                    return Err(format!("URL: {} failed: {}", url, error))
+                Err(cause) => return Err(CheckURLFail{service: self.clone(), cause: cause}),
             }
         }
         let urls_to_ch = match self.urls().len() {
@@ -57,7 +57,7 @@ impl Perun for Service {
     }
 
 
-    fn try_pid_file(&self) -> Result<String, String> {
+    fn try_pid_file(&self) -> Result<String, Mortal> {
         let path = self.clone().pid_file();
         match Service::load_raw(path.clone()) {
             Ok(raw_content) => {
@@ -66,27 +66,23 @@ impl Perun for Service {
                     Ok(pid) => unsafe {
                         match kill(pid, 0) {
                             0 => Ok(format!("PID: {}, from file: {}, is alive!", pid, self.pid_file())),
-                            _ => Err(format!("PID: {}, from file: {}, seems to be dead!", pid, self.pid_file())),
+                            _ => Err(CheckPidDead{service: self.clone(), pid: pid}),
                         }
                     },
-                    Err(cause) =>
-                        Err(format!("PID file: {}, seems to have malformed content: '{}'! Reason: {}", self.pid_file(), content, cause))
+                    Err(cause) => Err(CheckPidfileMalformed{service: self.clone(), cause: cause}),
                 }
             },
-            Err(cause) =>
-                Err(format!("PID file: {} unaccessible or not existent. Reason: {}", self.pid_file(), cause)),
+            Err(cause) => Err(CheckPidfileUnaccessible{service: self.clone(), cause: Error::new(ErrorKind::PermissionDenied, cause.to_string())}),
         }
     }
 
 
-    fn try_unix_socket(&self) -> Result<String, String> {
+    fn try_unix_socket(&self) -> Result<String, Mortal> {
         let path = self.clone().unix_socket();
         match UnixStream::connect(path.clone()) {
             Ok(mut stream) => {
                 match stream.write_all(UNIX_SOCKET_MSG) {
-                    Err(cause) =>
-                        Err(format!("Service not listening on UNIX socket: {}! Reason: {:?}", self.unix_socket(), cause.kind())),
-
+                    Err(cause) => Err(CheckUnixSocket{service: self.clone(), cause: cause}),
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
@@ -94,18 +90,17 @@ impl Perun for Service {
                     },
                 }
             },
-            Err(cause) =>
-                Err(format!("Missing UNIX socket file: {}! Reason: {:?}", self.unix_socket(), cause.kind())),
+            Err(cause) => Err(CheckUnixSocketMissing{service: self.clone(), cause: cause}),
         }
     }
 
 
-    fn checks_for(&self) -> Result<String, String> {
+    fn checks_for(&self) -> Result<String, Mortal> {
         let mut checks_performed = 0;
 
         match self.name().as_ref() {
             "" =>
-                return Err(format!("Empty name set for: {}", self.styled())),
+                return Err(CheckNameEmpty{service: self.clone()}),
             name =>
                 trace!("Service name set: {}", name.underline()),
         }
@@ -153,7 +148,7 @@ impl Perun for Service {
             _ => "checks",
         };
         match checks_performed {
-            0 => Err(format!("No {} defined for: {}", plu, self.styled())),
+            0 => Err(CheckNoServiceChecks{service: self.clone()}),
             _ => Ok(format!("Ok ⇒ {} {} passed for: {}", format!("{:2}", checks_performed).bold(), plu, self.styled())),
         }
     }
