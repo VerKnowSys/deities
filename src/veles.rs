@@ -1,8 +1,6 @@
 use std::io::prelude::*;
 use std::fs::{set_permissions, File};
 use std::os::unix::fs::PermissionsExt;
-use std::thread::sleep;
-use std::time::Duration;
 use std::process::{Command, Stdio};
 use std::os::unix::process::CommandExt;
 use users::{get_user_by_name, get_group_by_name};
@@ -32,6 +30,18 @@ impl Veles for Service {
             Ok(mut file) => {
                 match file.write(format!("#!/bin/sh\nexport PATH={}\n", DEFAULT_PATH).as_bytes()) {
                     Ok(_) => {
+                        // If cleanup routines defined, inject it before spawn:
+                        match self.clone().cleanup {
+                            Some(cleanup) => {
+                                let cl = format!("\n#Pre-start cleanup routine:\n{}\n\n", cleanup);
+                                match file.write(cl.as_bytes()) {
+                                    Ok(_) => trace!("Cleanup routine written successfully"),
+                                    Err(we) => error!("Cleanup write error!. Reason: {}", we),
+                                }
+                            },
+                            None => trace!("No cleanup routine to inject. Skipped."),
+                        }
+
                         match file.write(commands.as_bytes()) {
                             Ok(_) => {
                                 match file.flush() {
