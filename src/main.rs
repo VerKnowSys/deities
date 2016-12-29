@@ -15,6 +15,7 @@ extern crate hostname;
 extern crate uname;
 extern crate users;
 extern crate fs2;
+extern crate regex;
 
 pub mod common;
 pub mod service;
