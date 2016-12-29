@@ -127,20 +127,20 @@ fn main() {
                                             Err(error) => {
                                                 if SLACK_WEBHOOK_URL == "" {
                                                     warn!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
-                                                    error!("Failed: {}. Reason: {}", service.to_string(), error);
                                                 } else {
                                                     match service.notification(
-                                                        format!("Failed: {}", service.to_string()), error) {
+                                                        format!("malfunction of: {}", service.to_string()), error.clone()) {
                                                         Ok(msg) =>
                                                             trace!("Notification sent: {}", msg),
                                                         Err(er) =>
                                                             error!("{}", er),
                                                     }
                                                 }
+                                                error!("Detected malfunction of: {}. Reason: {}", service.to_string(), error);
 
                                                 // notification sent, now try handling service process
                                                 match service.start_service() {
-                                                    Ok(_) => warn!("Service started."),
+                                                    Ok(_) => info!("Service started."),
                                                     Err(cause) => error!("Failed to start service. Reason: {}", cause),
                                                 }
 
