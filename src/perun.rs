@@ -18,6 +18,9 @@ use service::Service;
  */
 pub trait Perun {
     fn try_pid_file(&self) -> Result<String, Mortal>;
+    /// death_watch will kill service gracefully in case of failure
+    /// instead of killing forcefully (kill -9)
+    fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal>;
     fn try_unix_socket(&self) -> Result<String, Mortal>;
     fn try_urls(&self) -> Result<String, Mortal>;
 
@@ -60,6 +63,38 @@ impl Perun for Service {
     fn try_pid_file(&self) -> Result<String, Mortal> {
         let path = self.clone().pid_file();
         match Service::load_raw(path.clone()) {
+    fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal> {
+        let pid = match self.pid() {
+           -1 => return Err(SanityCheckFailure{message: "Invalid pid: -1!".to_string()}),
+            0 => return Err(SanityCheckFailure{message: "Given pid: 0, it usually means that no process to kill, cause it's already dead.".to_string()}),
+            1 => return Err(SanityCheckFailure{message: "You can't put a death watch on pid: 1!".to_string()}),
+            any => any,
+        };
+
+        unsafe {
+            if kill(pid, 0) == 0 {
+                trace!("Process with pid: {}, still exists in process list! Perun enters the room!", pid);
+                if signal != libc::SIGCONT {
+                    sleep(Duration::from_millis(DEFAULT_DEATHWATCH_INTERVAL))
+                }
+                if kill(pid, signal) == 0 {
+                    if kill(pid, 0) != 0 {
+                        debug!("Process with pid: {}, was interruped!", pid);
+                        return Ok(OkPidInterrupted{service: self.clone(), pid: pid})
+                    }
+                }
+                match signal {
+                    libc::SIGCONT => self.death_watch(libc::SIGINT),
+                    libc::SIGINT => self.death_watch(libc::SIGTERM),
+                    libc::SIGTERM => self.death_watch(libc::SIGKILL),
+                    libc::SIGKILL => self.death_watch(libc::SIGKILL),
+                    any => Err(SanityCheckFailure{message: format!("Unhandled death_watch signal: {}", any)}),
+                }
+            } else {
+                Err(OkPidAlreadyInterrupted{service: self.clone(), pid: pid})
+            }
+        }
+    }
             Ok(raw_content) => {
                 let content = raw_content.trim();
                 match content.parse::<i32>() {
