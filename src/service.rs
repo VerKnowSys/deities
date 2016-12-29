@@ -52,6 +52,9 @@ pub struct Service {
 
     /// watch if service domains is a vector of PROTO+FQDN elements like: ["https://my.shiny.domain.com/page2?param=1", "http://some.com"]
     urls: Option<Vec<String>>,
+
+    /// default initialization file of service
+    ini_file: Option<String>,
 }
 
 
@@ -63,8 +66,8 @@ impl Service {
             Ok(service_definition) => {
                 let service_config: Option<Service> = decode_str(service_definition.as_ref());
                 match service_config {
-                    Some(service) => Ok(service),
                     None => Err(format!("Couldn't load definition from file: {}", file_name))
+                    Some(service) => Ok(Service{ini_file: Some(file_name), .. service}),
                 }
             },
 
@@ -163,6 +166,14 @@ impl Service {
         }
     }
 
+
+    pub fn ini_file(&self) -> String {
+        match self.ini_file.clone() {
+            Some(file_path) => file_path,
+            None => "undefined-ini-file".to_string(),
+        }
+    }
+
 }
 
 
@@ -192,6 +203,9 @@ impl Default for Service {
             pid_file: None,
             // listens: None,
             urls: None,
+
+            // filled automatically on creation:
+            ini_file: None,
         }
     }
 }
