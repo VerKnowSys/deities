@@ -92,7 +92,7 @@ impl Veles for Service {
                         cmd.uid(uid.uid());
                     },
                     None => {
-                        debug!("Username {} not found in system!", self.user())
+                        warn!("Username {} not found in system!", self.user())
                     }
                 }
 
@@ -102,7 +102,7 @@ impl Veles for Service {
                         cmd.gid(gid.gid());
                     },
                     None => {
-                        debug!("Username {} not found in system!", self.group())
+                        warn!("Username {} not found in system!", self.group())
                     }
                 }
 
