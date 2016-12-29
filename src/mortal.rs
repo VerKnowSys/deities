@@ -1,17 +1,22 @@
-use service::Service;
 use std::fmt;
 use std::fmt::Display;
-
 use std::io::Error;
 use curl::Error as CurlError;
 use slack_hook::Error as SlackError;
-use std::num::ParseIntError;
+
+
+use service::Service;
 
 
 #[derive(Debug)]
 pub enum Mortal {
 
-    CheckPassed,
+    /// Successes:
+    OkPidAlive{service: Service, pid: i32},
+    OkPidInterrupted{service: Service, pid: i32},
+    OkPidAlreadyInterrupted{service: Service, pid: i32},
+
+    /// Failures:
     CheckNameEmpty{service: Service},
     CheckNoServiceChecks{service: Service},
     CheckPidDead{service: Service, pid: i32},
@@ -23,7 +28,7 @@ pub enum Mortal {
 
     CheckURL{service: Service, url: String, cause: CurlError},
     CheckURLFail{service: Service, cause: CurlError},
-    CheckPidfileMalformed{service: Service, cause: ParseIntError},
+    CheckPidfileMalformed{service: Service},
     CheckPidfileUnaccessible{service: Service, cause: Error},
     CheckUnixSocket{service: Service, cause: Error},
     CheckUnixSocketMissing{service: Service, cause: Error},
@@ -32,13 +37,18 @@ pub enum Mortal {
     ServiceStartFailure{service: Service, cause: Error},
 
     NotificationFailure{cause: SlackError},
+
+    SanityCheckFailure{message: String},
 }
 
 
 impl Display for Mortal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Mortal: {}", match self {
-            &Mortal::CheckPassed => "No error?".to_string(),
+            &Mortal::OkPidAlive{ref service, ref pid} => format!("Ok: Alive pid: {} of service: {}", pid, service),
+            &Mortal::OkPidInterrupted{ref service, ref pid} => format!("Ok: Interrupted pid: {} of service: {}", pid, service),
+            &Mortal::OkPidAlreadyInterrupted{ref service, ref pid} => format!("Ok: Already interrupted pid: {} of service: {}", pid, service),
+
             &Mortal::CheckNameEmpty{ref service} => format!("{} has unset 'name' value in configuration file: {}!", service, service.ini_file()),
             &Mortal::CheckNoServiceChecks{ref service} => format!("{} has to contain at least single check!", service),
             &Mortal::CheckPidDead{ref service, ref pid} => format!("Found dead pid: {} of {}!", service, pid),
@@ -50,7 +60,7 @@ impl Display for Mortal {
 
             &Mortal::CheckURL{ref service, ref url, ref cause} => format!("Failed URL check for: {} of: {}. Reason: {}!", url, service, cause),
             &Mortal::CheckURLFail{ref service, ref cause} => format!("Internal CURL failure for: {}. Reason: {}!", service, cause),
-            &Mortal::CheckPidfileMalformed{ref service, ref cause} => format!("Detected malformed pid file of: {}. Reason: {}!", service, cause),
+            &Mortal::CheckPidfileMalformed{ref service} => format!("Detected malformed pid file of: {}!", service),
             &Mortal::CheckPidfileUnaccessible{ref service, ref cause} => format!("Cannot access pid file for: {}. Reason: {}!", service, cause),
             &Mortal::CheckUnixSocket{ref service, ref cause} => format!("Couldn't connect through UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
             &Mortal::CheckUnixSocketMissing{ref service, ref cause} => format!("Missing expected UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
@@ -59,6 +69,8 @@ impl Display for Mortal {
             &Mortal::ServiceStartFailure{ref service, ref cause} => format!("Failed to launch commands: {} for {}! Reason: {}", service.clone().start.unwrap_or("#no-commands".to_string()), service, cause),
 
             &Mortal::NotificationFailure{ref cause} => format!("Failed to send notification! Reason: {}", cause),
+
+            &Mortal::SanityCheckFailure{ref message} => format!("Sanity check failed: {}", message),
         })
     }
 }
