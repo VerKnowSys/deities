@@ -4,8 +4,11 @@ use std::fmt;
 use std::fmt::Display;
 use colored::*;
 use toml::decode_str;
+use std::io::{Error, ErrorKind};
 
 use common::*;
+use mortal::Mortal;
+use mortal::Mortal::*;
 
 
 /*
@@ -61,38 +64,38 @@ pub struct Service {
 impl Service {
 
 
-    pub fn new_from(file_name: String) -> Result<Service, String> {
+    pub fn new_from(file_name: String) -> Result<Service, Mortal> {
         match Service::load_definition(file_name.clone()) {
             Ok(service_definition) => {
                 let service_config: Option<Service> = decode_str(service_definition.as_ref());
                 match service_config {
-                    None => Err(format!("Couldn't load definition from file: {}", file_name))
                     Some(service) => Ok(Service{ini_file: Some(file_name), .. service}),
+                    None => Err(DefinitionDecodeFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, "Definition parse error! (detailed parse errors NYD!)".to_string())}),
                 }
             },
 
-            Err(cause) => Err(cause),
+            Err(cause) => Err(DefinitionLoadFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, cause.to_string())}),
         }
     }
 
 
     /// loads raw file as String
-    pub fn load_raw(file_name: String) -> Result<String, String> {
+    pub fn load_raw(file_name: String) -> Result<String, Mortal> {
         match File::open(file_name.clone()) {
             Ok(mut file) => {
                 let mut buffer = String::new();
                 match file.read_to_string(&mut buffer) {
                     Ok(_read_size) => Ok(buffer.to_owned()),
-                    Err(error) => Err(format!("Failed to read definition file: {}. Reason: {:?}", file_name, error.kind()))
+                    Err(error) => Err(RawLoadFailure{file_name: file_name, cause: error}),
                 }
             },
-            Err(cause) => Err(format!("Error loading file: {}. Reason: {:?}", file_name, cause.kind()))
+            Err(cause) => Err(RawAccessFailure{file_name: file_name, cause: cause}),
         }
     }
 
 
     /// loads service definition from toml (ini) file
-    pub fn load_definition(def_name: String) -> Result<String, String> {
+    pub fn load_definition(def_name: String) -> Result<String, Mortal> {
         let def_abspath = format!("{}/{}", SERVICES_DIR, def_name.clone());
         match Service::load_raw(def_abspath) {
             Ok(content) => Ok(content),
