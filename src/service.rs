@@ -147,7 +147,7 @@ impl Service {
     pub fn pid_file(&self) -> String {
         match self.pid_file.clone() {
             Some(path) => path,
-            None => format!("/var/run/{}.pid", self.name()),
+            None => "".to_string(),
         }
     }
 
