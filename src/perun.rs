@@ -1,6 +1,5 @@
 use std::os::unix::net::UnixStream;
 use std::io::prelude::*;
-use colored::*;
 use curl::easy::Easy;
 use std::time::Duration;
 use std::path::Path;
@@ -153,11 +152,6 @@ impl Perun for Service {
 
     fn checks_for(&self) -> Result<Mortal, Mortal> {
         let mut checks_performed = 0;
-
-        match self.name().as_ref() {
-            "" => return Err(CheckNameEmpty{service: self.clone()}),
-            name => trace!("Service name set: {}", name.underline()),
-        }
 
         match self.unix_socket().as_ref() {
             "" => trace!("Undefined unix_socket for: {}", self.styled()),

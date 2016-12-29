@@ -20,7 +20,6 @@ pub enum Mortal {
     OkPidAlreadyInterrupted{service: Service, pid: i32},
 
     /// Failures:
-    CheckNameEmpty{service: Service},
     CheckNoServiceChecks{service: Service},
     CheckPidDead{service: Service, pid: i32},
 
@@ -55,7 +54,6 @@ impl Display for Mortal {
             &Mortal::OkPidInterrupted{ref service, ref pid} => format!("Ok: Interrupted pid: {} of service: {}", pid, service),
             &Mortal::OkPidAlreadyInterrupted{ref service, ref pid} => format!("Ok: Already interrupted pid: {} of service: {}", pid, service),
 
-            &Mortal::CheckNameEmpty{ref service} => format!("{} has unset 'name' value in configuration file: {}!", service, service.ini_file()),
             &Mortal::CheckNoServiceChecks{ref service} => format!("{} has to contain at least single check!", service),
             &Mortal::CheckPidDead{ref service, ref pid} => format!("Found dead pid: {} of {}!", service, pid),
 
