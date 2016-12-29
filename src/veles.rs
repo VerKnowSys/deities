@@ -27,7 +27,7 @@ impl Veles for Service {
 
 
     fn create_shell_wrapper(&self, commands: String) -> String {
-        let wrapper = format!("{}/{}.sh", SERVICES_DIR, self.name());
+        let wrapper = format!("{}/.{}.sh", SERVICES_DIR, self.name());
         match File::create(wrapper.clone()) {
             Ok(mut file) => {
                 match file.write(b"#!/bin/sh\n") {
