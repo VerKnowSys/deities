@@ -28,17 +28,17 @@ pub trait Perun {
 
     fn read_pid(&self) -> Result<i32, Mortal>;
     fn try_pid_file(&self) -> Result<Mortal, Mortal>;
-    fn try_unix_socket(&self) -> Result<String, Mortal>;
-    fn try_urls(&self) -> Result<String, Mortal>;
+    fn try_unix_socket(&self) -> Result<Mortal, Mortal>;
+    fn try_urls(&self) -> Result<Mortal, Mortal>;
 
-    fn checks_for(&self) -> Result<String, Mortal>;
+    fn checks_for(&self) -> Result<Mortal, Mortal>;
 }
 
 
 impl Perun for Service {
 
 
-    fn try_urls(&self) -> Result<String, Mortal> {
+    fn try_urls(&self) -> Result<Mortal, Mortal> {
         for url in self.urls() {
             // let mut dst = Vec::new();
             let mut easy = Easy::new();
@@ -59,11 +59,7 @@ impl Perun for Service {
                 Err(cause) => return Err(CheckURLFail{service: self.clone(), cause: cause}),
             }
         }
-        let urls_to_ch = match self.urls().len() {
-            1 => "url",
-            _ => "urls",
-        };
-        Ok(format!("Ok - {} {} successfully checked for: {}", self.urls().len(), urls_to_ch, self.styled()))
+        Ok(OkUrlsChecks{service: self.clone()})
     }
 
 
@@ -137,7 +133,7 @@ impl Perun for Service {
     }
 
 
-    fn try_unix_socket(&self) -> Result<String, Mortal> {
+    fn try_unix_socket(&self) -> Result<Mortal, Mortal> {
         let path = self.clone().unix_socket();
         match UnixStream::connect(path.clone()) {
             Ok(mut stream) => {
@@ -146,7 +142,7 @@ impl Perun for Service {
                     Ok(_) => {
                         // let mut response = String::new();
                         // stream.read_to_string(&mut response).unwrap();
-                        Ok(format!("Service is listening on UNIX socket: {}", self.unix_socket()))
+                        Ok(OkUnixSockCheck{service: self.clone()})
                     },
                 }
             },
@@ -155,14 +151,12 @@ impl Perun for Service {
     }
 
 
-    fn checks_for(&self) -> Result<String, Mortal> {
+    fn checks_for(&self) -> Result<Mortal, Mortal> {
         let mut checks_performed = 0;
 
         match self.name().as_ref() {
-            "" =>
-                return Err(CheckNameEmpty{service: self.clone()}),
-            name =>
-                trace!("Service name set: {}", name.underline()),
+            "" => return Err(CheckNameEmpty{service: self.clone()}),
+            name => trace!("Service name set: {}", name.underline()),
         }
 
         match self.unix_socket().as_ref() {
@@ -201,15 +195,10 @@ impl Perun for Service {
             trace!("Undefined urls for: {}", self.styled())
         }
 
-
         trace!("performed {} checks for: {}", checks_performed, self.styled());
-        let plu = match checks_performed {
-            1 => "check",
-            _ => "checks",
-        };
         match checks_performed {
             0 => Err(CheckNoServiceChecks{service: self.clone()}),
-            _ => Ok(format!("Ok ⇒ {} {} passed for: {}", format!("{:2}", checks_performed).bold(), plu, self.styled())),
+            _ => Ok(OkAllChecks{service: self.clone(), amount: checks_performed}),
         }
     }
 
