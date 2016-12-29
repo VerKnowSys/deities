@@ -129,7 +129,12 @@ impl Service {
     pub fn group(&self) -> String {
         match self.group.clone() {
             Some(group) => group,
-            None => "nogroup".to_string(),
+            None =>
+                match self.sys_info().sysname.as_ref() {
+                    // on macOS it's better to assume that our user is in staff group:
+                    "Darwin" => "staff".to_string(),
+                    _ => "nobody".to_string(),
+                },
         }
     }
 
