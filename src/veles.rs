@@ -109,10 +109,8 @@ impl Veles for Service {
                 match cmd.spawn() {
                     Ok(mut child) => {
                         let pid = child.id();
-                        warn!("NOTE: Service is supposed to go in background!");
-                        child.wait().unwrap();
-                        sleep(Duration::from_millis(100));
-                        debug!("Service got pid: {}", pid);
+                        warn!("NOTE: Service is supposed to go in background (daemonize)!");
+                        child.wait().expect("Service should spawn in background!");
                         Ok(pid)
                     }
                     Err(e) => {
