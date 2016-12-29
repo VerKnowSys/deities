@@ -1,26 +1,33 @@
 use std::os::unix::net::UnixStream;
 use std::io::prelude::*;
-use libc::*;
 use colored::*;
 use curl::easy::Easy;
 use std::time::Duration;
 use std::path::Path;
 use std::io::{Error, ErrorKind};
+use std::thread::sleep;
+use libc;
+use libc::kill;
 
 use common::*;
+use service::Service;
 use mortal::Mortal;
 use mortal::Mortal::*;
-use service::Service;
 
 
 /*
  * Perun is a supervisor deity
  */
 pub trait Perun {
-    fn try_pid_file(&self) -> Result<String, Mortal>;
+
     /// death_watch will kill service gracefully in case of failure
     /// instead of killing forcefully (kill -9)
     fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal>;
+
+    fn pid(&self) -> i32;
+
+    fn read_pid(&self) -> Result<i32, Mortal>;
+    fn try_pid_file(&self) -> Result<Mortal, Mortal>;
     fn try_unix_socket(&self) -> Result<String, Mortal>;
     fn try_urls(&self) -> Result<String, Mortal>;
 
@@ -60,9 +67,6 @@ impl Perun for Service {
     }
 
 
-    fn try_pid_file(&self) -> Result<String, Mortal> {
-        let path = self.clone().pid_file();
-        match Service::load_raw(path.clone()) {
     fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal> {
         let pid = match self.pid() {
            -1 => return Err(SanityCheckFailure{message: "Invalid pid: -1!".to_string()}),
@@ -95,19 +99,40 @@ impl Perun for Service {
             }
         }
     }
+
+
+    fn pid(&self) -> i32 {
+        match self.read_pid() {
+            Ok(pid) => pid,
+            Err(_) => -1,
+        }
+    }
+
+
+    fn read_pid(&self) -> Result<i32, Mortal> {
+        match Service::load_raw(self.clone().pid_file()) {
             Ok(raw_content) => {
                 let content = raw_content.trim();
                 match content.parse::<i32>() {
-                    Ok(pid) => unsafe {
-                        match kill(pid, 0) {
-                            0 => Ok(format!("PID: {}, from file: {}, is alive!", pid, self.pid_file())),
-                            _ => Err(CheckPidDead{service: self.clone(), pid: pid}),
-                        }
-                    },
-                    Err(cause) => Err(CheckPidfileMalformed{service: self.clone(), cause: cause}),
+                    Ok(pid) => Ok(pid),
+                    Err(_) => Err(CheckPidfileMalformed{service: self.clone()}),
                 }
             },
             Err(cause) => Err(CheckPidfileUnaccessible{service: self.clone(), cause: Error::new(ErrorKind::PermissionDenied, cause.to_string())}),
+        }
+    }
+
+
+    fn try_pid_file(&self) -> Result<Mortal, Mortal> {
+        match self.read_pid() {
+            Ok(pid) =>
+                unsafe {
+                    match kill(pid, 0) {
+                        0 => Ok(OkPidAlive{service: self.clone(), pid: pid}),
+                        _ => Err(CheckPidfileMalformed{service: self.clone()}),
+                    }
+                },
+            Err(err) => Err(err),
         }
     }
 
