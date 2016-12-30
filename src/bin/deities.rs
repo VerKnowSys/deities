@@ -17,13 +17,6 @@ extern crate users;
 extern crate fs2;
 extern crate regex;
 
-pub mod common;
-pub mod service;
-pub mod mortal;
-pub mod svarog;
-pub mod perun;
-pub mod veles;
-
 use std::time::Duration;
 use std::thread::sleep;
 use colored::*;
@@ -45,12 +38,13 @@ use users::{Users, UsersCache};
 // use users::os::unix::{UserExt, GroupExt};
 // use users::os::bsd::UserExt as BSDUserExt;
 
+extern crate deities;
+use deities::common::*;
+use deities::veles::Veles;
+use deities::service::Service;
+use deities::perun::Perun;
+use deities::svarog::Svarog;
 
-use veles::Veles;
-use service::Service;
-use perun::Perun;
-use svarog::Svarog;
-use common::*;
 
 
 /// initialize internal logger
