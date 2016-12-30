@@ -4,6 +4,11 @@ use chrono::datetime::*;
 use slack_hook::SlackTextContent::{Text}; // Link
 use hostname::get_hostname;
 use uname::{uname, Info};
+use std::io::{Error, ErrorKind};
+use std::thread::sleep;
+use std::time::Duration;
+use libc;
+use libc::kill;
 
 use common::*;
 use service::Service;
@@ -26,6 +31,17 @@ pub trait Svarog {
 
     /// sends Slack alert notifications
     fn notification(&self, message: String, error: String) -> Result<String, Mortal>;
+
+
+    /// death_watch will kill service gracefully in case of failure
+    /// instead of killing forcefully (kill -9)
+    fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal>;
+
+    /// read pid from service pid file
+    fn read_pid(&self) -> Result<i32, Mortal>;
+
+    /// returns raw value of pid of service process
+    fn pid(&self) -> i32;
 
 }
 
@@ -108,6 +124,62 @@ impl Svarog for Service {
     // helper to read basic system information
     fn sys_info(&self) -> Info {
         uname().unwrap_or(Info::new().unwrap())
+    }
+
+
+    fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal> {
+        let pid = match self.pid() {
+           -1 => return Err(SanityCheckFailure{message: "Invalid pid: -1!".to_string()}),
+            0 => return Err(SanityCheckFailure{message: "Given pid: 0, it usually means that no process to kill, cause it's already dead.".to_string()}),
+            1 => return Err(SanityCheckFailure{message: "You can't put a death watch on pid: 1!".to_string()}),
+            any => any,
+        };
+
+        unsafe {
+            if kill(pid, 0) == 0 {
+                trace!("Process with pid: {}, still exists in process list! Perun enters the room!", pid);
+                if signal != libc::SIGCONT {
+                    sleep(Duration::from_millis(DEFAULT_DEATHWATCH_INTERVAL))
+                }
+                if kill(pid, signal) == 0 {
+                    if kill(pid, 0) != 0 {
+                        debug!("Process with pid: {}, was interruped!", pid);
+                        return Ok(OkPidInterrupted{service: self.clone(), pid: pid})
+                    }
+                }
+                match signal {
+                    libc::SIGCONT => self.death_watch(libc::SIGINT),
+                    libc::SIGINT => self.death_watch(libc::SIGTERM),
+                    libc::SIGTERM => self.death_watch(libc::SIGKILL),
+                    libc::SIGKILL => self.death_watch(libc::SIGKILL),
+                    any => Err(SanityCheckFailure{message: format!("Unhandled death_watch signal: {}", any)}),
+                }
+            } else {
+                Err(OkPidAlreadyInterrupted{service: self.clone(), pid: pid})
+            }
+        }
+    }
+
+
+    fn pid(&self) -> i32 {
+        match self.read_pid() {
+            Ok(pid) => pid,
+            Err(_) => -1,
+        }
+    }
+
+
+    fn read_pid(&self) -> Result<i32, Mortal> {
+        match Service::load_raw(self.clone().pid_file()) {
+            Ok(raw_content) => {
+                let content = raw_content.trim();
+                match content.parse::<i32>() {
+                    Ok(pid) => Ok(pid),
+                    Err(_) => Err(CheckPidfileMalformed{service: self.clone()}),
+                }
+            },
+            Err(cause) => Err(CheckPidfileUnaccessible{service: self.clone(), cause: Error::new(ErrorKind::PermissionDenied, cause.to_string())}),
+        }
     }
 
 
