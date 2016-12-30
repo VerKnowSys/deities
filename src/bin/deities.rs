@@ -103,38 +103,6 @@ fn list_services() -> Paths {
 }
 
 
-fn init_lockfile() -> () {
-    let users = UsersCache::new();
-    let lock_name = match users.get_current_uid() {
-        0 => DEFAULT_LOCK.to_string(),
-        _ => format!("{}{}", env::var("HOME").unwrap_or("/tmp".to_string()), DEFAULT_LOCK),
-    };
-
-    let lockfile = match File::open(lock_name.clone()) {
-        Ok(file) => file,
-        Err(_) => match File::create(lock_name.clone()) {
-            Ok(file) => file,
-            Err(cause) => {
-                error!("Lock creation error: {}", cause);
-                unsafe {
-                    libc::exit(libc::EPERM);
-                }
-            }
-        }
-    };
-    debug!("Trying for lock file: {}", lock_name);
-    match lockfile.try_lock_exclusive() {
-        Ok(_) => info!("Lock file acquired: {}", lock_name),
-        Err(_) => {
-            error!("Lock file already acquired. {} is already running!", NAME);
-            unsafe {
-                libc::exit(libc::EWOULDBLOCK);
-            }
-        },
-    }
-}
-
-
 fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
     debug!("Thread UUID: {}", thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
     match service_to_monitor.unwrap().file_name() {
@@ -208,7 +176,35 @@ fn eternity() -> () {
 
 fn main() {
     init_logger();
-    init_lockfile();
+
+    let users = UsersCache::new();
+    let lock_name = match users.get_current_uid() {
+        0 => DEFAULT_LOCK.to_string(),
+        _ => format!("{}{}", env::var("HOME").unwrap_or("/tmp".to_string()), DEFAULT_LOCK),
+    };
+
+    let lockfile = match File::open(lock_name.clone()) {
+        Ok(file) => file,
+        Err(_) => match File::create(lock_name.clone()) {
+            Ok(file) => file,
+            Err(cause) => {
+                error!("Lock creation error: {}", cause);
+                unsafe {
+                    libc::exit(libc::EPERM);
+                }
+            }
+        }
+    };
+    debug!("Trying for lock file: {}", lock_name);
+    match lockfile.try_lock_exclusive() {
+        Ok(_) => info!("Lock file acquired: {}", lock_name),
+        Err(_) => {
+            error!("Lock file already acquired. {} is already running!", NAME);
+            unsafe {
+                libc::exit(libc::EWOULDBLOCK);
+            }
+        },
+    }
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
     debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
