@@ -18,7 +18,6 @@ extern crate fs2;
 extern crate regex;
 
 use std::time::Duration;
-use std::thread::sleep;
 use colored::*;
 use log::LogLevel::*;
 use log::LogLevelFilter;
@@ -27,10 +26,12 @@ use fern::{DispatchConfig, OutputConfig};
 use std::env;
 use std::sync::Arc;
 use std::thread;
-use std::thread::Builder;
+use std::thread::{sleep, Builder, JoinHandle};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
+use std::path;
 use glob::glob;
+use glob::GlobError;
 use glob::Paths;
 use std::fs::File;
 use fs2::FileExt;
@@ -44,6 +45,8 @@ use deities::veles::Veles;
 use deities::service::Service;
 use deities::perun::Perun;
 use deities::svarog::Svarog;
+use deities::mortal::Mortal;
+use deities::mortal::Mortal::*;
 
 
 
@@ -100,9 +103,7 @@ fn list_services() -> Paths {
 }
 
 
-fn main() {
-    init_logger();
-
+fn init_lockfile() -> () {
     let users = UsersCache::new();
     let lock_name = match users.get_current_uid() {
         0 => DEFAULT_LOCK.to_string(),
@@ -121,7 +122,6 @@ fn main() {
             }
         }
     };
-
     debug!("Trying for lock file: {}", lock_name);
     match lockfile.try_lock_exclusive() {
         Ok(_) => info!("Lock file acquired: {}", lock_name),
@@ -132,78 +132,87 @@ fn main() {
             }
         },
     }
+}
+
+
+fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
+    debug!("Thread UUID: {}", thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
+    match service_to_monitor.unwrap().file_name() {
+        Some(path) => {
+            match path.to_str() {
+                Some(service_definition_file) => {
+                    match Service::new_from(service_definition_file.to_string()) {
+                        // perfom Perun checks on service definition:
+                        Ok(service) => {
+                            match service.checks_for() {
+                                Ok(ok) => info!("{}", ok),
+                                Err(error) => {
+                                    if SLACK_WEBHOOK_URL == "" {
+                                        info!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
+                                    } else {
+                                        match service.notification(
+                                            format!("Detected malfunction of: {}", service), error.to_string()) {
+                                            Ok(msg) =>
+                                                trace!("Notification sent: {}", msg),
+                                            Err(er) =>
+                                                error!("{}", er),
+                                        }
+                                    }
+                                    warn!("Detected malfunction of: {}. Reason: {}", service, error);
+                                    // notification sent, now try handling service process
+                                    match service.start_service() {
+                                        Ok(_) => info!("Service started: {}", service.name().green().bold()),
+                                        Err(cause) => error!("Failed to start service. Reason: {}", cause),
+                                    }
+                                },
+                            }
+                        },
+
+                        Err(reason) => error!("Definition load failure: {:?}", reason),
+                    }
+                },
+
+                None => error!("Unable to open service file in path: {:?}", path),
+            }
+        },
+
+        None => error!("No access to read service definition file?")
+    }
+}
+
+
+fn eternity() -> () {
+    let cycle_count = Arc::new(AtomicUsize::new(0));
+    loop {
+        cycle_count.fetch_add(1, Ordering::SeqCst);
+        debug!("Iteration no. {}", format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
+
+        // let handlers: Vec<thread::JoinHandle<_>> =
+        trace!("{}", list_services().flat_map(|service_to_monitor| {
+            let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
+            thread_builder.spawn( || {
+                spawn_thread(service_to_monitor)
+            })
+        }).map(|handle| {
+            match handle.join() {
+                Ok(_) => format!("Handler joined service threads of finished iteration: {}", cycle_count.load(Ordering::SeqCst)),
+                Err(cause) => format!("Failed joining threads! Internal cause: {:?}", cause),
+            }
+        }).collect::<String>());
+
+        sleep(Duration::from_millis(CHECK_INTERVAL));
+    }
+}
+
+
+fn main() {
+    init_logger();
+    init_lockfile();
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
     debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
 
-    let cycle_count = Arc::new(AtomicUsize::new(0));
-    loop {
-        cycle_count.fetch_add(1, Ordering::SeqCst);
-
-        for service_to_monitor in list_services() {
-            debug!("Iteration no. {}", format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
-
-            let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
-            let handler = thread_builder.spawn( || {
-                debug!("Thread UUID: {}", thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
-                match service_to_monitor.unwrap().file_name() {
-                    Some(path) => {
-                        match path.to_str() {
-                            Some(service_definition_file) => {
-                                match Service::new_from(service_definition_file.to_string()) {
-                                    // perfom Perun checks on service definition:
-                                    Ok(service) => {
-                                        match service.checks_for() {
-                                            Ok(ok) => info!("{}", ok),
-                                            Err(error) => {
-                                                if SLACK_WEBHOOK_URL == "" {
-                                                    warn!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
-                                                } else {
-                                                    match service.notification(
-                                                        format!("malfunction of: {}", service.to_string()), error.to_string()) {
-                                                        Ok(msg) =>
-                                                            trace!("Notification sent: {}", msg),
-                                                        Err(er) =>
-                                                            error!("{}", er),
-                                                    }
-                                                }
-                                                error!("Detected malfunction of: {}. Reason: {}", service.to_string(), error);
-
-                                                // notification sent, now try handling service process
-                                                match service.start_service() {
-                                                    Ok(_) => info!("Service started: {}", service.name().green().bold()),
-                                                    Err(cause) => error!("Failed to start service. Reason: {}", cause),
-                                                }
-
-                                            },
-                                        }
-                                    },
-
-                                    Err(reason) => error!("Definition load failure: {:?}", reason),
-                                }
-                            },
-
-                            None => error!("Unable to open service file in path: {:?}", path),
-                        }
-                    },
-
-                    None => error!("No access to read service definition file?")
-                }
-            });
-
-            match handler {
-                Ok(handle) => {
-                    match handle.join() {
-                        Ok(_) => trace!("Handler joined service threads of finished iteration: {}", cycle_count.load(Ordering::SeqCst)),
-                        Err(cause) => error!("Failed joining threads! Internal cause: {:?}", cause),
-                    }
-                },
-                Err(cause) => error!("Handler failed! Cause: {}", cause),
-            }
-        }
-
-        sleep(Duration::from_millis(CHECK_INTERVAL));
-    }
+    eternity()
 }
 
 
