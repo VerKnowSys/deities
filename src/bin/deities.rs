@@ -162,13 +162,16 @@ fn eternity() -> () {
                 spawn_thread(service_to_monitor)
             })
         }).map(|handle| {
+            let name = format!("{}", handle.thread().name().unwrap_or("Unnamed"));
+            (handle, name)
+        }).map(|(handle, name)| {
             match handle.join() {
-                Ok(_) => format!("Thread: {} finished iteration: {}", thread::current().name().unwrap(), cycle_count.load(Ordering::SeqCst)),
-                Err(cause) => format!("Failed joining threads! Internal cause: {:?}", cause),
+                Ok(_) => format!("Thread: {} joined iteration: {}", name, cycle_count.load(Ordering::SeqCst)),
+                Err(cause) => format!("Thread: {} failed to join iteration: {}! Internal cause: {:?}", name, cycle_count.load(Ordering::SeqCst), cause),
             }
         }).collect::<String>();
 
-        trace!("{}", out);
+        trace!("{:?}", out);
         sleep(Duration::from_millis(CHECK_INTERVAL));
     }
 }
