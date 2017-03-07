@@ -5,6 +5,9 @@ use std::time::Duration;
 use std::path::Path;
 use libc::kill;
 
+#[cfg(not(all(target_os="macos")))]
+use systemstat::{System, Platform};
+
 use common::*;
 use service::Service;
 use svarog::Svarog;
@@ -22,6 +25,7 @@ pub trait Perun {
     fn try_urls(&self) -> Result<Mortal, Mortal>;
 
     fn checks_for(&self) -> Result<Mortal, Mortal>;
+    fn get_sys_stat(&self) -> String;
 }
 
 
@@ -85,8 +89,35 @@ impl Perun for Service {
     }
 
 
+    #[cfg(all(target_os="macos"))]
+    fn get_sys_stat(&self) -> String {
+        "".to_string()
+    }
+
+
+    #[cfg(not(all(target_os="macos")))]
+    fn get_sys_stat(&self) -> String {
+        let sys = System::new();
+        let mounts = sys.mounts().unwrap();
+        println!("\nMounts:");
+        for mount in mounts.iter() {
+            println!("{} ---{}---> {} (available {} of {})",
+                     mount.fs_mounted_from, mount.fs_type, mount.fs_mounted_on, mount.avail, mount.total);
+        }
+        let netifs = sys.networks().unwrap();
+        println!("\nNetworks:");
+        for netif in netifs.values() {
+            println!("{} ({:?})", netif.name, netif.addrs);
+        }
+
+        "".to_string()
+    }
+
+
     fn checks_for(&self) -> Result<Mortal, Mortal> {
         let mut checks_performed = 0;
+
+        info!("{}", self.get_sys_stat());
 
         match self.unix_socket().as_ref() {
             "" => trace!("Undefined unix_socket for: {}", self.styled()),

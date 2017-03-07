@@ -22,3 +22,9 @@ uname = "0.1"
 users = "0.5"
 fs2 = "0.4"
 regex = "0.1"
+
+[target.'cfg(linux)'.dependencies]
+systemstat = "0.1"
+
+[target.'cfg(freebsd)'.dependencies]
+systemstat = "0.1"

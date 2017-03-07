@@ -17,6 +17,8 @@ extern crate users;
 extern crate fs2;
 extern crate regex;
 
+#[cfg(not(all(target_os="macos")))]
+extern crate systemstat;
 
 pub mod common;
 pub mod service;
