@@ -4,9 +4,8 @@ use curl::easy::Easy;
 use std::time::Duration;
 use std::path::Path;
 use libc::kill;
-
-#[cfg(not(all(target_os="macos")))]
-use systemstat::{System, Platform};
+use std::process::Command;
+use regex::Regex;
 
 use common::*;
 use service::Service;
@@ -25,7 +24,7 @@ pub trait Perun {
     fn try_urls(&self) -> Result<Mortal, Mortal>;
 
     fn checks_for(&self) -> Result<Mortal, Mortal>;
-    fn get_sys_stat(&self) -> String;
+    fn check_disk_space(&self) -> (i64, i64);
 }
 
 
@@ -89,35 +88,111 @@ impl Perun for Service {
     }
 
 
-    #[cfg(all(target_os="macos"))]
-    fn get_sys_stat(&self) -> String {
-        "".to_string()
+    /*
+
+    Linux =>
+
+        "df /"
+        #
+        # Filesystem     1K-blocks    Used Available Use% Mounted on
+        # /dev/vda1       20510568 3157596  16297100  17% /
+
+
+        "df -i /"
+        # Filesystem      Inodes  IUsed   IFree IUse% Mounted on
+        # /dev/vda1      1305600 134125 1171475   11% /
+
+
+    *BSD | Darwin =>
+
+        "df -i /"
+        # HardenedBSD:
+        #
+        # Filesystem         1K-blocks   Used    Avail Capacity iused    ifree %iused  Mounted on
+        # zroot/ROOT/default  49815548 817556 48997992     2%   49351 97995984    0%   /
+
+        "df -i /"
+        # Darwin:
+        #
+        # Filesystem   Size   Used  Avail Capacity iused      ifree %iused  Mounted on
+        # /dev/disk1  233Gi   70Gi  162Gi    31% 1545816 4293421463    0%   /
+
+    */
+
+    #[cfg(all(target_os="linux"))]
+    fn check_disk_space(&self) -> (i64, i64) {
+        lazy_static! {
+            static ref FIRST_LINE: Regex = Regex::new(r"^.*\n").unwrap();
+        }
+        let space = Command::new("/bin/df").arg("-k").arg("/").output().unwrap();
+        let space_data = FIRST_LINE.replace_all(space.output, "");
+
+        let inodes = Command::new("/bin/df").arg("-ki").arg("/").output().unwrap();
+        let inodes_data = FIRST_LINE.replace_all(inodes.stdout.to_owned(), "");
+
+        info!("Space - {:?}\nInodes - {:?}", space_data, inodes_data);
+        (0, 0)
     }
 
 
-    #[cfg(not(all(target_os="macos")))]
-    fn get_sys_stat(&self) -> String {
-        let sys = System::new();
-        let mounts = sys.mounts().unwrap();
-        println!("\nMounts:");
-        for mount in mounts.iter() {
-            println!("{} ---{}---> {} (available {} of {})",
-                     mount.fs_mounted_from, mount.fs_type, mount.fs_mounted_on, mount.avail, mount.total);
+    #[cfg(not(target_os="linux"))]
+    fn check_disk_space(&self) -> (i64, i64) {
+        lazy_static! {
+            static ref FIRST_LINE: Regex = Regex::new(r"^.*\n").unwrap();
+            static ref SPACE: Regex = Regex::new(r"(\s+)").unwrap();
         }
-        let netifs = sys.networks().unwrap();
-        println!("\nNetworks:");
-        for netif in netifs.values() {
-            println!("{} ({:?})", netif.name, netif.addrs);
+        match Command::new("/bin/df").arg("-ki").arg("/").output() {
+            Ok(data) => {
+                match String::from_utf8(data.stdout) {
+                    Ok(parsed) => {
+                        let inodes_data = FIRST_LINE.replace(parsed.as_ref(), "");
+                        let mut it = SPACE.split(inodes_data.as_ref());
+                        it.next(); it.next(); it.next();
+                        let free_disk_space_bytes = match it.next() {
+                            Some(content) =>
+                                match content.parse::<i64>() {
+                                    Ok(number) => number,
+                                    Err(cause) => {
+                                        error!("Parse failure. Reason: {:?}", cause);
+                                        -1
+                                    },
+                                },
+                            None => 0,
+                        };
+                        it.next(); it.next();
+                        let free_disk_inodes = match it.next() {
+                            Some(content) =>
+                                match content.parse::<i64>() {
+                                    Ok(number) => number,
+                                    Err(cause) => {
+                                        error!("Parse failure. Reason: {:?}", cause);
+                                        -1
+                                    },
+                                },
+                            None => 0,
+                        };
+                        debug!("Free disk space: {}. Free inodes: {}", free_disk_space_bytes, free_disk_inodes);
+                        (free_disk_space_bytes, free_disk_inodes)
+                    },
+                    Err(cause) => {
+                        error!("Failed utf8 parse! Reason: {:?}", cause);
+                        (-2, -2)
+                    }
+                }
+            },
+            Err(cause) => {
+                error!("Failure! Reason: {:?}", cause);
+                (-1, -1)
+            }
         }
-
-        "".to_string()
     }
 
 
     fn checks_for(&self) -> Result<Mortal, Mortal> {
         let mut checks_performed = 0;
 
-        info!("{}", self.get_sys_stat());
+        let (a, b) = self.check_disk_space();
+        info!("{}/{}", a, b);
 
         match self.unix_socket().as_ref() {
             "" => trace!("Undefined unix_socket for: {}", self.styled()),

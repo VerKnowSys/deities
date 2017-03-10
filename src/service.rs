@@ -113,7 +113,7 @@ impl Service {
             None => {
                 // cut off file extension and use it as default service name:
                 let rx = Regex::new(r"\..*$").unwrap();
-                rx.replace_all(self.ini_file().as_ref(), "").to_owned()
+                rx.replace_all(self.ini_file().as_ref(), "").to_string()
             },
         }
     }
