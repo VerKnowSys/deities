@@ -15,10 +15,9 @@ extern crate hostname;
 extern crate uname;
 extern crate users;
 extern crate fs2;
+#[macro_use] extern crate lazy_static;
 extern crate regex;
 
-#[cfg(not(all(target_os="macos")))]
-extern crate systemstat;
 
 pub mod common;
 pub mod service;
