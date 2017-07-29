@@ -2,25 +2,24 @@
 name = "deities"
 authors = ["Daniel (dmilith) Dettlaff <dmilith@me.com>"]
 description = "Deities are three Slavic gods - Perun (supervisor), Veles (service spawner), Svarog (low level smith)"
-version = "0.4.4"
+version = "0.4.3"
 
 [dependencies]
-toml = "0.2"
+toml = "0.4"
 glob = "0.2"
-rustc-serialize = "0.3"
 log = "0.3"
 colored = "1.4"
 fern = "0.3"
 time = "0.1"
 libc = "0.2"
 uuid = { version = "0.3", features = ["v4"] }
-curl = "0.3"
-slack-hook = "0.2"
+curl = "0.4"
+slack-hook = "0.5"
 chrono = "0.2"
 hostname = "0.1"
 uname = "0.1"
 users = "0.5"
 fs2 = "0.4"
-lazy_static = "0.2.4"
 regex = "0.2"
-sys-info = {git = "https://github.com/VerKnowSys/sys-info-rs", branch = "master"}
+serde = "1.0"
+serde_derive = "1.0"
