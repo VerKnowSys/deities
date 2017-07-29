@@ -82,7 +82,7 @@ impl Svarog for Service {
                             Field::new("", "", Some(true)),
                             Field::new("Error details:", error, Some(false)),
                         ])
-                    .ts(&local.naive_local())
+                    // .ts(&local.naive_local())
                     .footer_icon(DEFAULT_VKS_LOGO)
                     .footer(vec![
                         Text("© 2o16-2o17   |".into()),
