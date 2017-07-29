@@ -62,6 +62,8 @@ pub struct Service {
 
     /// default initialization file of service
     ini_file: Option<String>,
+
+    webhookurl: Option<String>,
 }
 
 
@@ -116,6 +118,18 @@ impl Service {
                 let rx = Regex::new(r"\..*$").unwrap();
                 rx.replace_all(self.ini_file().as_ref(), "").to_string()
             },
+        }
+    }
+
+
+    pub fn webhookurl(&self) -> String {
+        match self.webhookurl.clone() {
+            Some(webhookurl) => webhookurl,
+            None =>
+                match env::var("SLACK_WEBHOOK_URL") {
+                    Ok(webhookurl) => webhookurl.to_owned(),
+                    Err(_) => "".to_string(),
+                },
         }
     }
 
