@@ -3,7 +3,8 @@ use std::fs::File;
 use std::fmt;
 use std::fmt::Display;
 use colored::*;
-use toml::decode_str;
+use toml::*;
+use toml::de::Error as TomlError;
 use std::io::{Error, ErrorKind};
 use std::env;
 use regex::Regex;
@@ -71,10 +72,10 @@ impl Service {
         let def_abspath = format!("{}/{}", SERVICES_DIR, file_name.clone());
         match Service::load_definition(def_abspath) {
             Ok(service_definition) => {
-                let service_config: Option<Service> = decode_str(service_definition.as_ref());
+                let service_config: Result<Service, TomlError> = from_str(service_definition.as_ref());
                 match service_config {
-                    Some(service) => Ok(Service{ini_file: Some(file_name), .. service}),
-                    None => Err(DefinitionDecodeFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, "Definition parse error! (detailed parse errors NYD!)".to_string())}),
+                    Ok(service) => Ok(Service{ini_file: Some(file_name), .. service}),
+                    Err(_) => Err(DefinitionDecodeFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, "Definition parse error! (detailed parse errors NYD!)".to_string())}),
                 }
             },
             Err(cause) => Err(DefinitionLoadFailure{ini_name: file_name, cause: Error::new(ErrorKind::Other, cause.to_string())}),
