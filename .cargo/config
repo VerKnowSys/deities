@@ -1,0 +1,1 @@
+native = ["/Software/Curl/lib", "/Software/Curl/include", "/Software/Curl/bin"]
