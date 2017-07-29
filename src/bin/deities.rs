@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate log;
+
+#[macro_use]
+extern crate serde_derive;
+extern crate toml;
+
 extern crate colored;
 extern crate fern;
 extern crate libc;
-extern crate rustc_serialize;
-extern crate toml;
 extern crate glob;
 extern crate time;
 extern crate uuid;
