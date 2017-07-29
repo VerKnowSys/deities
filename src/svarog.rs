@@ -30,7 +30,7 @@ pub trait Svarog {
 
 
     /// sends Slack alert notifications
-    fn notification(&self, message: String, error: String) -> Result<String, Mortal>;
+    fn notification(&self, message: String, error: String, webhookurl: String) -> Result<String, Mortal>;
 
 
     /// death_watch will kill service gracefully in case of failure
@@ -49,9 +49,9 @@ pub trait Svarog {
 impl Svarog for Service {
 
 
-    fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
+    fn notification(&self, message: String, error: String, webhookurl: String) -> Result<String, Mortal> {
         let local: DateTime<Local> = Local::now();
-        let slack = Slack::new(SLACK_WEBHOOK_URL).unwrap();
+        let slack = Slack::new(webhookurl.as_ref()).unwrap();
         let p = PayloadBuilder::new()
             .attachments(
                 vec![
