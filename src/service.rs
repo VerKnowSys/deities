@@ -20,7 +20,7 @@ use mortal::Mortal::*;
  */
 
 
-#[derive(RustcDecodable, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Service {
 
     /* Veles: */
