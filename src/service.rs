@@ -20,7 +20,7 @@ use mortal::Mortal::*;
  */
 
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Default)]
 pub struct Service {
 
     /* Veles: */
@@ -193,40 +193,6 @@ impl Service {
         }
     }
 
-}
-
-
-impl Default for Service {
-    fn default() -> Service {
-        Service {
-            /* Veles: */
-            name: None,
-            user: None,
-            group: None,
-            work_dir: None,
-
-            /* Svarog: */
-            // configure: None,
-            // start: None,
-            start: None,
-            cleanup: None,
-            // after_start: None,
-            // stop: None,
-            // after_stop: None,
-            // reload: None,
-            // validate: None,
-
-            /* Perun: */
-            conf_file: None,
-            unix_socket: None,
-            pid_file: None,
-            // listens: None,
-            urls: None,
-
-            // filled automatically on creation:
-            ini_file: None,
-        }
-    }
 }
 
 
