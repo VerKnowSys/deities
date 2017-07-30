@@ -1,2 +1,4 @@
 target
 Cargo.lock
+/.idea/libraries
+/.idea/workspace.xml
