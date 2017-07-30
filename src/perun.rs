@@ -183,7 +183,7 @@ impl Perun for Service {
                                 },
                             None => 0,
                         };
-                        debug!("Free disk space: {}. Free inodes: {}", free_disk_space_bytes, free_disk_inodes);
+                        debug!("Free disk space: {} GiB. Free inodes: {}", free_disk_space_bytes / 1024 / 1024, free_disk_inodes);
                         (free_disk_space_bytes, free_disk_inodes)
                     },
                     Err(cause) => {
@@ -203,9 +203,14 @@ impl Perun for Service {
     fn checks_for(&self) -> Result<Mortal, Mortal> {
         let checks_performed = Arc::new(AtomicUsize::new(0));
 
-        let (a, b) = self.check_disk_space();
-        info!("{}/{}", a, b);
+        match self.try_disk_check() {
+            Ok(_) => {
                 checks_performed.fetch_add(1, Ordering::SeqCst);
+                debug!("Disk checks passed for: {}", self.styled())
+            },
+            Err(cause) => return Err(cause),
+        }
+
 
         match self.unix_socket().as_ref() {
             "" => trace!("Undefined unix_socket for: {}", self.styled()),
