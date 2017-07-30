@@ -51,6 +51,9 @@ pub struct Service {
     // watch service availability through UNIX socket:
     unix_socket: Option<String>,
 
+    disk_space: Option<i64>,
+    disk_inodes: Option<i64>,
+
     // watch service availability through pid_file
     pid_file: Option<String>,
 
@@ -129,6 +132,30 @@ impl Service {
                 let rx = Regex::new(r"\..*$").unwrap();
                 rx.replace_all(self.ini_file().as_ref(), "").to_string()
             },
+        }
+    }
+
+
+    pub fn disk_space(&self) -> i64 {
+        match self.disk_space.clone() {
+            Some(disk_space) => disk_space,
+            None =>
+                match env::var("DISK_MINIMUMSPACE") {
+                    Ok(disk_space) => disk_space.parse().unwrap_or(DISK_MINIMUMSPACE),
+                    Err(_) => DISK_MINIMUMSPACE,
+                },
+        }
+    }
+
+
+    pub fn disk_inodes(&self) -> i64 {
+        match self.disk_inodes.clone() {
+            Some(disk_inodes) => disk_inodes,
+            None =>
+                match env::var("DISK_MINIMUMINODES") {
+                    Ok(disk_inodes) => disk_inodes.parse().unwrap_or(DISK_MINIMUMINODES),
+                    Err(_) => DISK_MINIMUMINODES,
+                },
         }
     }
 
