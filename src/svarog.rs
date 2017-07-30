@@ -1,6 +1,6 @@
 use slack_hook::{Slack, PayloadBuilder, AttachmentBuilder, Parse, Field}; // SlackLink,
-// use chrono::Local;
-// use chrono::datetime::*;
+use chrono::Local;
+use chrono::datetime::*;
 use slack_hook::SlackTextContent::{Text}; // Link
 use hostname::get_hostname;
 use uname::{uname, Info};
@@ -50,7 +50,7 @@ impl Svarog for Service {
 
 
     fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
-        // let local: DateTime<Local> = Local::now
+        let local: DateTime<Local> = Local::now();
         let webhookurl = self.slack_webhookurl();
         let alertchannel = self.slack_alertchannel();
 
@@ -65,7 +65,7 @@ impl Svarog for Service {
                         info!("SLACK_ALERTCHANNEL is empty. Slack notigications will NOTE be sent!");
                         Ok("Notifiication skipped".to_string())
                     },
-                    channel => {
+                    _channel => {
                         let slack = Slack::new(webhookurl.as_ref()).unwrap();
                         let p = PayloadBuilder::new()
                             .attachments(
@@ -98,7 +98,7 @@ impl Svarog for Service {
                                             ])
                                         .footer_icon(DEFAULT_VKS_LOGO)
                                         .footer(vec![
-                                            Text("© 2o16-2o17   |".into()),
+                                            Text(format!("{}   © 2o16-2o17   |", local.naive_local()).into()),
                                         ].as_slice())
                                         .build()
                                         .unwrap()
