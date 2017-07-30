@@ -151,7 +151,7 @@ fn eternity() -> () {
         debug!("Iteration no. {}", format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
 
         // let handlers: Vec<thread::JoinHandle<_>> =
-        let out = list_services().flat_map(|service_to_monitor| {
+        let out: String = list_services().flat_map(|service_to_monitor| {
             let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
             thread_builder.spawn( || {
                 spawn_thread(service_to_monitor)
@@ -164,7 +164,7 @@ fn eternity() -> () {
                 Ok(_) => format!("Thread: {} joined iteration: {}", name, cycle_count.load(Ordering::SeqCst)),
                 Err(cause) => format!("Thread: {} failed to join iteration: {}! Internal cause: {:?}", name, cycle_count.load(Ordering::SeqCst), cause),
             }
-        }).collect::<String>();
+        }).collect();
 
         trace!("{:?}", out);
         sleep(Duration::from_millis(CHECK_INTERVAL));
