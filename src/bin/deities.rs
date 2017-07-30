@@ -44,7 +44,7 @@ use deities::veles::Veles;
 use deities::service::Service;
 use deities::perun::Perun;
 use deities::svarog::Svarog;
-
+use deities::init_fields::*;
 
 
 /// initialize internal logger

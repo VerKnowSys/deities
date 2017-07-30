@@ -7,6 +7,7 @@ use users::{get_user_by_name, get_group_by_name};
 
 use common::*;
 use service::Service;
+use init_fields::InitFields;
 use mortal::Mortal;
 use mortal::Mortal::*;
 

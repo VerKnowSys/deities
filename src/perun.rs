@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use common::*;
 use service::Service;
 use svarog::Svarog;
+use init_fields::InitFields;
 use mortal::Mortal;
 use mortal::Mortal::*;
 

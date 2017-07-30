@@ -12,6 +12,7 @@ use libc::kill;
 
 use common::*;
 use service::Service;
+use init_fields::InitFields;
 use mortal::Mortal;
 use mortal::Mortal::*;
 

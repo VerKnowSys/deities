@@ -6,6 +6,7 @@ use slack_hook::Error as SlackError;
 
 
 use service::Service;
+use init_fields::InitFields;
 
 
 #[derive(Debug)]

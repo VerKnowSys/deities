@@ -27,9 +27,11 @@ pub mod mortal;
 pub mod svarog;
 pub mod perun;
 pub mod veles;
+pub mod init_fields;
 
 pub use common::*;
 pub use veles::Veles;
 pub use service::Service;
 pub use perun::Perun;
 pub use svarog::Svarog;
+pub use init_fields::InitFields;

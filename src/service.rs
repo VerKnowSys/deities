@@ -6,11 +6,9 @@ use colored::*;
 use toml::*;
 use toml::de::Error as TomlError;
 use std::io::{Error, ErrorKind};
-use std::env;
-use regex::Regex;
 
 use common::*;
-use svarog::Svarog;
+use init_fields::InitFields;
 use mortal::Mortal;
 use mortal::Mortal::*;
 
