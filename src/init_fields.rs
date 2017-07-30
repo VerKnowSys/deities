@@ -1,5 +1,4 @@
 use std::env;
-use regex::Regex;
 
 use common::*;
 use svarog::Svarog;
@@ -8,7 +7,6 @@ use service::Service;
 
 /// standard fields for service init file:
 pub trait InitFields {
-    fn name(&self) -> String;
     fn disk_space(&self) -> i64;
     fn disk_inodes(&self) -> i64;
     fn slack_webhookurl(&self) -> String;
@@ -26,19 +24,9 @@ pub trait InitFields {
 }
 
 
+/// InitFields will try to use shell variables as fallback for most missin options in init files
 impl InitFields for Service {
 
-    /// returns service name
-    fn name(&self) -> String {
-        match self.name.clone() {
-            Some(name) => name,
-            None => {
-                // cut off file extension and use it as default service name:
-                let rx = Regex::new(r"\..*$").unwrap();
-                rx.replace_all(self.ini_file().as_ref(), "").to_string()
-            },
-        }
-    }
 
     /// minimum disk space on disk required - in MiB
     fn disk_space(&self) -> i64 {

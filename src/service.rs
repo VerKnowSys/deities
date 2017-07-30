@@ -6,6 +6,7 @@ use colored::*;
 use toml::*;
 use toml::de::Error as TomlError;
 use std::io::{Error, ErrorKind};
+use regex::Regex;
 
 use common::*;
 use init_fields::InitFields;
@@ -22,7 +23,7 @@ use mortal::Mortal::*;
 pub struct Service {
 
     /* Veles: */
-    pub name: Option<String>,
+    name: Option<String>,
     pub user: Option<String>,
     pub group: Option<String>,
 
@@ -80,6 +81,19 @@ pub struct Service {
 
 
 impl Service {
+
+
+    /// returns service name
+    pub fn name(&self) -> String {
+        match self.name.clone() {
+            Some(name) => name,
+            None => {
+                // cut off file extension and use it as default service name:
+                let rx = Regex::new(r"\..*$").unwrap();
+                rx.replace_all(self.ini_file().as_ref(), "").to_string()
+            },
+        }
+    }
 
 
     pub fn from(file_name: String) -> Result<Service, Mortal> {
