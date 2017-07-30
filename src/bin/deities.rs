@@ -109,15 +109,17 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                     match Service::new_from(service_definition_file.to_string()) {
                         // perfom Perun checks on service definition:
                         Ok(service) => {
+                            let interval = service.check_interval();
+                            debug!("Sleep interval: {} ms, of {}", interval, service);
+                            sleep(Duration::from_millis(interval));
+
                             match service.checks_for() {
                                 Ok(ok) => info!("{}", ok),
                                 Err(error) => {
                                     match service.notification(
                                         format!("Detected malfunction of: {}", service), error.to_string()) {
-                                        Ok(msg) =>
-                                            trace!("Notification sent: {}", msg),
-                                        Err(er) =>
-                                            error!("{}", er),
+                                        Ok(msg) => trace!("Notification sent: {}", msg),
+                                        Err(er) => error!("{}", er),
                                     }
                                     warn!("Detected malfunction of: {}. Reason: {}", service, error);
                                     // notification sent, now try handling service process
