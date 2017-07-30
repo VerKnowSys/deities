@@ -22,9 +22,9 @@ use mortal::Mortal::*;
 pub struct Service {
 
     /* Veles: */
-    name: Option<String>,
-    user: Option<String>,
-    group: Option<String>,
+    pub name: Option<String>,
+    pub user: Option<String>,
+    pub group: Option<String>,
 
     /* Svarog: */
     // pub configure: Option<String>,
@@ -41,48 +41,48 @@ pub struct Service {
     /* Perun: */
 
     /// service main service configuration file
-    conf_file: Option<String>,
+    pub conf_file: Option<String>,
 
     /// determines directory to jump - before starting service
-    work_dir: Option<String>,
+    pub work_dir: Option<String>,
 
     // watch service availability through UNIX socket:
-    unix_socket: Option<String>,
+    pub unix_socket: Option<String>,
 
-    disk_space: Option<i64>,
-    disk_inodes: Option<i64>,
+    pub disk_space: Option<i64>,
+    pub disk_inodes: Option<i64>,
 
     // watch service availability through pid_file
-    pid_file: Option<String>,
+    pub pid_file: Option<String>,
 
     /// watch if service listens is a vector of IP:PORT elements like: ["127.0.0.1:1234", "1.2.3.4:5000"]
     // listens: Option<Vec<String>>,
 
     /// watch if service domains is a vector of PROTO+FQDN elements like: ["https://my.shiny.domain.com/page2?param=1", "http://some.com"]
-    urls: Option<Vec<String>>,
+    pub urls: Option<Vec<String>>,
 
     /// default initialization file of service
-    ini_file: Option<String>,
+    pub ini_file: Option<String>,
 
     /// CHECK_INTERVAL
-    check_interval: Option<u64>,
+    pub check_interval: Option<u64>,
 
     /// CHECK_URL_TIMEOUT
-    check_urltimeout: Option<u64>,
+    pub check_urltimeout: Option<u64>,
 
     /// DEATHWATCH_INTERVAL
-    deathwatch_interval: Option<u64>,
+    pub deathwatch_interval: Option<u64>,
 
     /// Slack Notifications can be overridden on service init file
-    slack_webhookurl: Option<String>,
-    slack_alertchannel: Option<String>,
+    pub slack_webhookurl: Option<String>,
+    pub slack_alertchannel: Option<String>,
 }
 
 
 impl Service {
 
 
-    pub fn new_from(file_name: String) -> Result<Service, Mortal> {
+    pub fn from(file_name: String) -> Result<Service, Mortal> {
         let def_abspath = format!("{}/{}", SERVICES_DIR, file_name.clone());
         match Service::load_definition(def_abspath) {
             Ok(service_definition) => {
@@ -147,8 +147,8 @@ impl Display for Service {
         };
 
         write!(f, "{}", format!("Service(name: {}, ini: {}{}{}{})",
-            slf.name(),
-            slf.ini_file(),
+            slf.name.unwrap(),
+            slf.ini_file.unwrap(),
             optional_pid_entry,
             optional_sock_entry,
             optional_urls_entries,
