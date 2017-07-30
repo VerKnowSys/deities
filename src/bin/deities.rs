@@ -167,7 +167,6 @@ fn eternity() -> () {
         }).collect();
 
         trace!("{:?}", out);
-        sleep(Duration::from_millis(CHECK_INTERVAL));
     }
 }
 
@@ -205,8 +204,6 @@ fn main() {
     }
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
-    debug!("{}. Service check interval: {:4}ms", "Veles".green().bold(), CHECK_INTERVAL);
-
     eternity()
 }
 
