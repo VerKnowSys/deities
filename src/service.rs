@@ -63,6 +63,16 @@ pub struct Service {
     /// default initialization file of service
     ini_file: Option<String>,
 
+    /// CHECK_INTERVAL
+    check_interval: Option<u64>,
+
+    /// CHECK_URL_TIMEOUT
+    check_urltimeout: Option<u64>,
+
+    /// DEATHWATCH_INTERVAL
+    deathwatch_interval: Option<u64>,
+
+    /// Slack Notifications can be overridden on service init file
     slack_webhookurl: Option<String>,
     slack_alertchannel: Option<String>,
 }
@@ -142,6 +152,57 @@ impl Service {
                 match env::var("SLACK_ALERTCHANNEL") {
                     Ok(slack_alertchannel) => slack_alertchannel.to_owned(),
                     Err(_) => SLACK_ALERT_CHANNEL.to_string(),
+                },
+        }
+    }
+
+
+    pub fn check_interval(&self) -> u64 {
+        match self.check_interval.clone() {
+            Some(check_interval) => check_interval,
+            None =>
+                match env::var("CHECK_INTERVAL") {
+                    Ok(check_interval) =>
+                        match check_interval.parse::<u64>().unwrap_or(CHECK_INTERVAL) {
+                            0 => CHECK_INTERVAL,
+                            v if v < 100 => 100, // pointless to do it more often than 10 times per second
+                            v => v
+                        },
+                    Err(_) => CHECK_INTERVAL,
+                },
+        }
+    }
+
+
+    pub fn check_urltimeout(&self) -> u64 {
+        match self.check_urltimeout.clone() {
+            Some(check_urltimeout) => check_urltimeout,
+            None =>
+                match env::var("CHECK_URL_TIMEOUT") {
+                    Ok(timeout) =>
+                        match timeout.parse::<u64>().unwrap_or(CHECK_INTERVAL) {
+                            0 => CHECK_URL_TIMEOUT,
+                            v if v < 1000 => 1000, // pointless to expect url check to be less than a second
+                            v => v
+                        },
+                    Err(_) => CHECK_URL_TIMEOUT,
+                },
+        }
+    }
+
+
+    pub fn deathwatch_interval(&self) -> u64 {
+        match self.deathwatch_interval.clone() {
+            Some(deathwatch_interval) => deathwatch_interval,
+            None =>
+                match env::var("DEATHWATCH_INTERVAL") {
+                    Ok(interval) =>
+                        match interval.parse::<u64>().unwrap_or(CHECK_INTERVAL) {
+                            0 => CHECK_URL_TIMEOUT,
+                            v if v < 2000 => 2000, // pointless to wait less than 2 seconds for process to react
+                            v => v
+                        },
+                    Err(_) => DEATHWATCH_INTERVAL,
                 },
         }
     }
