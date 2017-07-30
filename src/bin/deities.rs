@@ -118,16 +118,12 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                             match service.checks_for() {
                                 Ok(ok) => info!("{}", ok),
                                 Err(error) => {
-                                    if SLACK_WEBHOOK_URL == "" {
-                                        info!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!");
-                                    } else {
-                                        match service.notification(
-                                            format!("Detected malfunction of: {}", service), error.to_string()) {
-                                            Ok(msg) =>
-                                                trace!("Notification sent: {}", msg),
-                                            Err(er) =>
-                                                error!("{}", er),
-                                        }
+                                    match service.notification(
+                                        format!("Detected malfunction of: {}", service), error.to_string(), service.webhookurl()) {
+                                        Ok(msg) =>
+                                            trace!("Notification sent: {}", msg),
+                                        Err(er) =>
+                                            error!("{}", er),
                                     }
                                     warn!("Detected malfunction of: {}. Reason: {}", service, error);
                                     // notification sent, now try handling service process
