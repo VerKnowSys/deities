@@ -18,6 +18,7 @@ pub enum Mortal {
     OkPidAlive{service: Service, pid: i32},
     OkPidInterrupted{service: Service, pid: i32},
     OkPidAlreadyInterrupted{service: Service, pid: i32},
+    OkDiskCheck{service: Service},
 
     /// Failures:
     CheckNoServiceChecks{service: Service},
@@ -34,6 +35,8 @@ pub enum Mortal {
     CheckPidfileUnaccessible{service: Service, cause: Error},
     CheckUnixSocket{service: Service, cause: Error},
     CheckUnixSocketMissing{service: Service, cause: Error},
+    CheckDiskSpace{service: Service},
+    CheckDiskInodes{service: Service},
 
     ServiceNoStartDefined{service: Service},
     ServiceStartFailure{service: Service, cause: Error},
@@ -53,6 +56,7 @@ impl Display for Mortal {
             &Mortal::OkPidAlive{ref service, ref pid} => format!("Ok: Alive pid: {} of service: {}", pid, service),
             &Mortal::OkPidInterrupted{ref service, ref pid} => format!("Ok: Interrupted pid: {} of service: {}", pid, service),
             &Mortal::OkPidAlreadyInterrupted{ref service, ref pid} => format!("Ok: Already interrupted pid: {} of service: {}", pid, service),
+            &Mortal::OkDiskCheck{ref service} => format!("Ok: Disk check passed for service: {}", service),
 
             &Mortal::CheckNoServiceChecks{ref service} => format!("{} has to contain at least single check!", service),
             &Mortal::CheckPidDead{ref service, ref pid} => format!("Found dead pid: {} of {}!", service, pid),
@@ -68,6 +72,8 @@ impl Display for Mortal {
             &Mortal::CheckPidfileUnaccessible{ref service, ref cause} => format!("Cannot access pid file for: {}. Reason: {}!", service, cause),
             &Mortal::CheckUnixSocket{ref service, ref cause} => format!("Couldn't connect through UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
             &Mortal::CheckUnixSocketMissing{ref service, ref cause} => format!("Missing expected UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
+            &Mortal::CheckDiskSpace{ref service} => format!("Disk space check alert! Available: {} MiB!", service.disk_space() / 1024),
+            &Mortal::CheckDiskInodes{ref service} => format!("Disk inodes check alert! Available: {} !", service.disk_inodes()),
 
             &Mortal::ServiceNoStartDefined{ref service} => format!("No 'start' value in configuration of: {}!", service),
             &Mortal::ServiceStartFailure{ref service, ref cause} => format!("Failed to launch commands: {} for {}! Reason: {}", service.clone().start.unwrap_or("#no-commands".to_string()), service, cause),
