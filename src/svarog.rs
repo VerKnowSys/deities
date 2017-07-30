@@ -51,6 +51,11 @@ impl Svarog for Service {
 
     fn notification(&self, message: String, error: String, webhookurl: String) -> Result<String, Mortal> {
         let local: DateTime<Local> = Local::now();
+        match &webhookurl[..] {
+            "" => info!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!"),
+            _ => debug!("Defined SLACK_WEBHOOK_URL! Notifications configured!"),
+        }
+
         let slack = Slack::new(webhookurl.as_ref()).unwrap();
         let p = PayloadBuilder::new()
             .attachments(
