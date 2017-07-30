@@ -156,11 +156,13 @@ impl Svarog for Service {
             if kill(pid, 0) == 0 {
                 trace!("Process with pid: {}, still exists in process list! Perun enters the room!", pid);
                 if signal != libc::SIGCONT {
-                    sleep(Duration::from_millis(DEATHWATCH_INTERVAL))
+                    let deathwatch_ival = self.clone().deathwatch_interval();
+                    debug!("Deathwatch interval: {} ms", deathwatch_ival);
+                    sleep(Duration::from_millis(deathwatch_ival))
                 }
                 if kill(pid, signal) == 0 {
                     if kill(pid, 0) != 0 {
-                        debug!("Process with pid: {}, was interruped!", pid);
+                        debug!("Process with pid: {}, was interrupted!", pid);
                         return Ok(OkPidInterrupted{service: self.clone(), pid: pid})
                     }
                 }
