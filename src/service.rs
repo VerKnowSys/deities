@@ -63,7 +63,8 @@ pub struct Service {
     /// default initialization file of service
     ini_file: Option<String>,
 
-    webhookurl: Option<String>,
+    slack_webhookurl: Option<String>,
+    slack_alertchannel: Option<String>,
 }
 
 
@@ -122,13 +123,25 @@ impl Service {
     }
 
 
-    pub fn webhookurl(&self) -> String {
-        match self.webhookurl.clone() {
-            Some(webhookurl) => webhookurl,
+    pub fn slack_webhookurl(&self) -> String {
+        match self.slack_webhookurl.clone() {
+            Some(slack_webhookurl) => slack_webhookurl,
             None =>
-                match env::var("SLACK_WEBHOOK_URL") {
-                    Ok(webhookurl) => webhookurl.to_owned(),
+                match env::var("SLACK_WEBHOOKURL") {
+                    Ok(slack_webhookurl) => slack_webhookurl.to_owned(),
                     Err(_) => "".to_string(),
+                },
+        }
+    }
+
+
+    pub fn slack_alertchannel(&self) -> String {
+        match self.slack_alertchannel.clone() {
+            Some(slack_alertchannel) => slack_alertchannel,
+            None =>
+                match env::var("SLACK_ALERTCHANNEL") {
+                    Ok(slack_alertchannel) => slack_alertchannel.to_owned(),
+                    Err(_) => SLACK_ALERT_CHANNEL.to_string(),
                 },
         }
     }
