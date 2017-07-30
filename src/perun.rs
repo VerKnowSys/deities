@@ -22,6 +22,7 @@ pub trait Perun {
     fn try_pid_file(&self) -> Result<Mortal, Mortal>;
     fn try_unix_socket(&self) -> Result<Mortal, Mortal>;
     fn try_urls(&self) -> Result<Mortal, Mortal>;
+    fn try_disk_check(&self) -> Result<Mortal, Mortal>;
 
     fn checks_for(&self) -> Result<Mortal, Mortal>;
     fn check_disk_space(&self) -> (i64, i64);
@@ -84,6 +85,15 @@ impl Perun for Service {
                 }
             },
             Err(cause) => Err(CheckUnixSocketMissing{service: self.clone(), cause: cause}),
+        }
+    }
+
+
+    fn try_disk_check(&self) -> Result<Mortal, Mortal> {
+        match self.check_disk_space() {
+            (space, _) if space / 1024 < DISK_MINIMUMSPACE => Err(CheckDiskSpace {service: self.clone()}),
+            (_, inodes) if inodes < DISK_MINIMUMINODES => Err(CheckDiskInodes {service: self.clone()}),
+            (_space, _inodes) => Ok(OkDiskCheck {service: self.clone()}),
         }
     }
 
