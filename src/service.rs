@@ -163,7 +163,7 @@ impl Service {
             None =>
                 match env::var("CHECK_INTERVAL") {
                     Ok(check_interval) =>
-                        match check_interval.parse::<u64>().unwrap_or(CHECK_INTERVAL) {
+                        match check_interval.parse().unwrap_or(CHECK_INTERVAL) {
                             v if v < 100 => 100, // pointless to do it more often than 10 times per second
                             v => v
                         },
@@ -179,7 +179,7 @@ impl Service {
             None =>
                 match env::var("CHECK_URL_TIMEOUT") {
                     Ok(timeout) =>
-                        match timeout.parse::<u64>().unwrap_or(CHECK_URL_TIMEOUT) {
+                        match timeout.parse().unwrap_or(CHECK_URL_TIMEOUT) {
                             v if v < 1000 => 1000, // pointless to expect url check to be less than a second
                             v => v
                         },
@@ -195,7 +195,7 @@ impl Service {
             None =>
                 match env::var("DEATHWATCH_INTERVAL") {
                     Ok(interval) =>
-                        match interval.parse::<u64>().unwrap_or(DEATHWATCH_INTERVAL) {
+                        match interval.parse().unwrap_or(DEATHWATCH_INTERVAL) {
                             v if v < 2000 => 2000, // pointless to wait less than 2 seconds for process to react
                             v => v
                         },
