@@ -106,7 +106,7 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
         Some(path) => {
             match path.to_str() {
                 Some(service_definition_file) => {
-                    match Service::new_from(service_definition_file.to_string()) {
+                    match Service::from(service_definition_file.to_string()) {
                         // perfom Perun checks on service definition:
                         Ok(service) => {
                             let interval = service.check_interval();
