@@ -1,8 +1,5 @@
 #[macro_use]
 extern crate log;
-
-#[macro_use]
-extern crate serde_derive;
 extern crate toml;
 
 extern crate colored;
@@ -29,12 +26,11 @@ use fern::{DispatchConfig, OutputConfig};
 use std::env;
 use std::sync::Arc;
 use std::thread;
-use std::thread::{sleep, Builder, JoinHandle};
+use std::thread::{sleep, Builder};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
 use std::path;
 use glob::glob;
-use glob::GlobError;
 use glob::Paths;
 use std::fs::File;
 use fs2::FileExt;
@@ -48,8 +44,6 @@ use deities::veles::Veles;
 use deities::service::Service;
 use deities::perun::Perun;
 use deities::svarog::Svarog;
-use deities::mortal::Mortal;
-use deities::mortal::Mortal::*;
 
 
 
