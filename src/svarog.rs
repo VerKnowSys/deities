@@ -1,6 +1,6 @@
 use slack_hook::{Slack, PayloadBuilder, AttachmentBuilder, Parse, Field}; // SlackLink,
-use chrono::Local;
-use chrono::datetime::*;
+// use chrono::Local;
+// use chrono::datetime::*;
 use slack_hook::SlackTextContent::{Text}; // Link
 use hostname::get_hostname;
 use uname::{uname, Info};
@@ -30,7 +30,7 @@ pub trait Svarog {
 
 
     /// sends Slack alert notifications
-    fn notification(&self, message: String, error: String, webhookurl: String) -> Result<String, Mortal>;
+    fn notification(&self, message: String, error: String) -> Result<String, Mortal>;
 
 
     /// death_watch will kill service gracefully in case of failure
@@ -49,70 +49,82 @@ pub trait Svarog {
 impl Svarog for Service {
 
 
-    fn notification(&self, message: String, error: String, webhookurl: String) -> Result<String, Mortal> {
-        let local: DateTime<Local> = Local::now();
+    fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
+        // let local: DateTime<Local> = Local::now
+        let webhookurl = self.slack_webhookurl();
+        let alertchannel = self.slack_alertchannel();
+
         match &webhookurl[..] {
-            "" => info!("SLACK_WEBHOOK_URL is unset. Slack notifications will NOT be sent!"),
-            _ => debug!("Defined SLACK_WEBHOOK_URL! Notifications configured!"),
-        }
+            "" => {
+                info!("SLACK_WEBHOOKURL is unset. Slack notifications will NOT be sent!");
+                Ok("Notifiication skipped".to_string())
+            },
+            _ => {
+                match &alertchannel[..] {
+                    "" => {
+                        info!("SLACK_ALERTCHANNEL is empty. Slack notigications will NOTE be sent!");
+                        Ok("Notifiication skipped".to_string())
+                    },
+                    channel => {
+                        let slack = Slack::new(webhookurl.as_ref()).unwrap();
+                        let p = PayloadBuilder::new()
+                            .attachments(
+                                vec![
+                                    AttachmentBuilder::new(DEFAULT_NOTIFICATION_NAME)
+                                        .title("ALERT NOTIFICATION")
+                                        .author_name(DEFAULT_NOTIFICATION_NAME)
+                                        .author_icon(DEFAULT_VKS_LOGO)
+                                        .color("#FF3d41")
+                                        .text(
+                                            vec![
+                                                Text("Unstable service detected. Deities will attempt to solve this problem automatically.".into()),
+                                                // Link(SlackLink::new("https://google.com", "Google")),
+                                                Text("".into()),
+                                            ].as_slice())
+                                        .fields(
+                                            vec![
+                                                Field::new("", "", Some(false)),
+                                                Field::new("", "", Some(false)),
+                                                Field::new("Message:", message, Some(true)),
+                                                Field::new("Service details:", self.to_string(), Some(true)),
+                                                Field::new("", "", Some(false)),
+                                                Field::new("Host name:", format!("{}", self.sys_info().nodename), Some(true)),
+                                                Field::new(
+                                                    format!("System / Release / Machine / {}", NAME),
+                                                    format!("{} / {} / {} / {}", self.sys_info().sysname, self.sys_info().release, self.sys_info().machine, VERSION),
+                                                    Some(true)),
+                                                Field::new("", "", Some(true)),
+                                                Field::new("Error details:", error, Some(false)),
+                                            ])
+                                        .footer_icon(DEFAULT_VKS_LOGO)
+                                        .footer(vec![
+                                            Text("© 2o16-2o17   |".into()),
+                                        ].as_slice())
+                                        .build()
+                                        .unwrap()
+                                ])
+                            .link_names(true)
+                            .unfurl_links(true)
+                            .unfurl_media(true)
+                            .username(DEFAULT_NOTIFICATION_NAME)
+                            .icon_url(DEFAULT_VKS_LOGO)
+                            .icon_emoji(":rotating_light:")
+                            .text("")
+                            .channel(alertchannel.clone())
+                            .parse(Parse::Full)
+                            .build()
+                            .unwrap();
 
-        let slack = Slack::new(webhookurl.as_ref()).unwrap();
-        let p = PayloadBuilder::new()
-            .attachments(
-                vec![
-                    AttachmentBuilder::new(DEFAULT_NOTIFICATION_NAME)
-                    .title("ALERT NOTIFICATION")
-                    .author_name(DEFAULT_NOTIFICATION_NAME)
-                    .author_icon(DEFAULT_VKS_LOGO)
-                    .color("#FF3d41")
-                    .text(
-                        vec![
-                            Text("Unstable service detected. Deities will attempt to solve this problem automatically.".into()),
-                            // Link(SlackLink::new("https://google.com", "Google")),
-                            Text("".into()),
-                        ].as_slice())
-                    .fields(
-                        vec![
-                            Field::new("", "", Some(false)),
-                            Field::new("", "", Some(false)),
-                            Field::new("Message:", message, Some(true)),
-                            Field::new("Service details:", self.to_string(), Some(true)),
-                            Field::new("", "", Some(false)),
-                            Field::new("Host name:", format!("{}", self.sys_info().nodename), Some(true)),
-                            Field::new(
-                                format!("System / Release / Machine / {}", NAME),
-                                format!("{} / {} / {} / {}", self.sys_info().sysname, self.sys_info().release, self.sys_info().machine, VERSION),
-                                Some(true)),
-
-                            Field::new("", "", Some(true)),
-                            Field::new("Error details:", error, Some(false)),
-                        ])
-                    // .ts(&local.naive_local())
-                    .footer_icon(DEFAULT_VKS_LOGO)
-                    .footer(vec![
-                        Text("© 2o16-2o17   |".into()),
-                        ].as_slice())
-                    .build()
-                    .unwrap()
-                ])
-            .link_names(true)
-            .unfurl_links(true)
-            .unfurl_media(true)
-            .username(DEFAULT_NOTIFICATION_NAME)
-            .icon_url(DEFAULT_VKS_LOGO)
-            .icon_emoji(":rotating_light:")
-            .text("")
-            .channel(SLACK_ALERT_CHANNEL)
-            .parse(Parse::Full)
-            .build()
-            .unwrap();
-
-        let res = slack.send(&p);
-        match res {
-            Ok(()) =>
-                Ok("Notifiication sent".to_string()),
-            Err(cause) =>
-                Err(NotificationFailure{cause: cause}),
+                        let res = slack.send(&p);
+                        match res {
+                            Ok(()) =>
+                                Ok("Notifiication sent".to_string()),
+                            Err(cause) =>
+                                Err(NotificationFailure { cause: cause }),
+                        }
+                    },
+                }
+            }
         }
     }
 
