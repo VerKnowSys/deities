@@ -119,7 +119,7 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                 Ok(ok) => info!("{}", ok),
                                 Err(error) => {
                                     match service.notification(
-                                        format!("Detected malfunction of: {}", service), error.to_string(), service.webhookurl()) {
+                                        format!("Detected malfunction of: {}", service), error.to_string()) {
                                         Ok(msg) =>
                                             trace!("Notification sent: {}", msg),
                                         Err(er) =>

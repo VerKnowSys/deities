@@ -156,7 +156,7 @@ impl Svarog for Service {
             if kill(pid, 0) == 0 {
                 trace!("Process with pid: {}, still exists in process list! Perun enters the room!", pid);
                 if signal != libc::SIGCONT {
-                    sleep(Duration::from_millis(DEFAULT_DEATHWATCH_INTERVAL))
+                    sleep(Duration::from_millis(DEATHWATCH_INTERVAL))
                 }
                 if kill(pid, signal) == 0 {
                     if kill(pid, 0) != 0 {
