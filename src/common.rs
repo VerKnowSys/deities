@@ -13,6 +13,12 @@ pub static CHECK_URL_TIMEOUT: u64 = 10000;
 /// pause after each signal sent by death_watch to get rid of live pid
 pub static DEATHWATCH_INTERVAL: u64 = 2000;
 
+/// minimum disk space required for disk
+pub static DISK_MINIMUMSPACE: i64 = 3000; // in MiB
+
+/// minimum disk inodes on disk
+pub static DISK_MINIMUMINODES: i64 = 4096;
+
 /// Default dir containing services configuration
 pub static SERVICES_DIR: &'static str = "/Services";
 
