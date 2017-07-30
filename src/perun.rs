@@ -6,6 +6,8 @@ use std::path::Path;
 use libc::kill;
 use std::process::Command;
 use regex::Regex;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use common::*;
 use service::Service;
@@ -199,17 +201,18 @@ impl Perun for Service {
 
 
     fn checks_for(&self) -> Result<Mortal, Mortal> {
-        let mut checks_performed = 0;
+        let checks_performed = Arc::new(AtomicUsize::new(0));
 
         let (a, b) = self.check_disk_space();
         info!("{}/{}", a, b);
+                checks_performed.fetch_add(1, Ordering::SeqCst);
 
         match self.unix_socket().as_ref() {
             "" => trace!("Undefined unix_socket for: {}", self.styled()),
             _  =>
                 match self.try_unix_socket() {
                     Ok(_) => {
-                        checks_performed += 1;
+                        checks_performed.fetch_add(1, Ordering::SeqCst);
                         debug!("UNIX socket check passed for: {}, with unix_socket: {}", self.styled(), self.unix_socket())
                     },
                     Err(err) => return Err(err),
@@ -221,7 +224,7 @@ impl Perun for Service {
             _  =>
                 match self.try_pid_file() {
                     Ok(_) => {
-                        checks_performed += 1;
+                        checks_performed.fetch_add(1, Ordering::SeqCst);
                         debug!("PID check passed for: {}, with pid_file: {}", self.styled(), self.pid_file())
                     },
                     Err(err) => return Err(err),
@@ -231,7 +234,7 @@ impl Perun for Service {
         if self.urls().len() > 0 {
             match self.try_urls() {
                 Ok(_) => {
-                    checks_performed += 1;
+                    checks_performed.fetch_add(1, Ordering::SeqCst);
                     debug!("URLs check passed for: {}, with urls: {:?}", self.styled(), self.urls())
                 },
                 Err(err) => return Err(err),
@@ -240,10 +243,10 @@ impl Perun for Service {
             trace!("Undefined urls for: {}", self.styled())
         }
 
-        trace!("performed {} checks for: {}", checks_performed, self.styled());
-        match checks_performed {
+        trace!("performed {} checks for: {}", checks_performed.clone().load(Ordering::SeqCst), self.styled());
+        match checks_performed.clone().load(Ordering::SeqCst) {
             0 => Err(CheckNoServiceChecks{service: self.clone()}),
-            _ => Ok(OkAllChecks{service: self.clone(), amount: checks_performed}),
+            _ => Ok(OkAllChecks{service: self.clone(), amount: checks_performed.clone().load(Ordering::SeqCst) as i32}),
         }
     }
 
