@@ -166,7 +166,13 @@ fn eternity() -> () {
             }
         }).collect();
 
-        trace!("{:?}", out);
+        match &out[..] {
+            "" => {
+                debug!("No services found under /Services, throttling..");
+                sleep(Duration::from_millis(CHECK_INTERVAL))
+            },
+            traced => trace!("{}", traced),
+        }
     }
 }
 
