@@ -137,11 +137,11 @@ impl Display for Mortal {
                                cause)
                    }
                    &Mortal::CheckDiskSpace { ref service } => {
-                       format!("Disk space check alert! Available: {} MiB!",
-                               service.disk_minimum_space() / 1024)
+                       format!("Disk space check alert! Requires available at least: {} MiB!",
+                               service.disk_minimum_space())
                    }
                    &Mortal::CheckDiskInodes { ref service } => {
-                       format!("Disk inodes check alert! Available: {} !",
+                       format!("Disk inodes check alert! Requires at least: {} !",
                                service.disk_minimum_inodes())
                    }
 

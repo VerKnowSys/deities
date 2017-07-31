@@ -115,7 +115,7 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                         // perfom Perun checks on service definition:
                         Ok(service) => {
                             let interval = service.checks_interval();
-                            debug!("Sleep interval: {} ms, of {}", interval, service);
+                            debug!("Checks interval: {} ms, of {}", interval, service);
                             sleep(Duration::from_millis(interval));
 
                             match service.checks_for() {
