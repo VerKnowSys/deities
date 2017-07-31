@@ -22,20 +22,51 @@ use mortal::Mortal::*;
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct Service {
 
-    /// Service name. Can be overriden. By default it grabs name of ini file.
+    /// Service name. Can be overridden. By default it grabs name of ini file.
     name: Option<String>,
 
     /// default initialization file of service
     ini_file: Option<String>,
 
+
+    /* ---------------- */
+    /* General settings */
+    /* ---------------- */
+
+    /// default user name to launch service as
     pub user: Option<String>,
+
+    /// default group name to launch service as
     pub group: Option<String>,
 
-    /* Svarog: */
-    // pub configure: Option<String>,
-    // pub start: Option<String>,
+    /// CHECKS_INTERVAL
+    pub checks_interval: Option<u64>,
+
+    /// CHECKS_URL_TIMEOUT
+    pub checks_url_timeout: Option<u64>,
+
+    /// DEATHWATCHES_INTERVAL
+    pub deathwatches_interval: Option<u64>,
+
+    /// Slack Notifications can be overridden on service init file
+    pub slack_webhook_url: Option<String>,
+    pub slack_alert_channel: Option<String>,
+
+    /// determines directory to jump - before starting service
+    pub work_dir: Option<String>,
+
+
+    /* ------------ */
+    /* Veles spawns */
+    /* ------------ */
+
+    /// default commands to start service
     pub start: Option<String>,
+
+    /// default commands to cleanup service mess (like hanged master process)
     pub cleanup: Option<String>,
+
+    // pub configure: Option<String>,
     // pub after_start: Option<String>,
     // pub stop: Option<String>,
     // pub after_stop: Option<String>,
@@ -43,41 +74,25 @@ pub struct Service {
     // pub validate: Option<String>,
 
 
-    /* Perun: */
-
-    /// service main service configuration file
-    conf_file: Option<String>,
-
-    /// determines directory to jump - before starting service
-    pub work_dir: Option<String>,
-
-    // watch service availability through UNIX socket:
-    pub unix_socket: Option<String>,
-
-    pub disk_minimum_space: Option<i64>,
-    pub disk_minimum_inodes: Option<i64>,
-
-    // watch service availability through pid_file
-    pub pid_file: Option<String>,
-
-    /// watch if service listens is a vector of IP:PORT elements like: ["127.0.0.1:1234", "1.2.3.4:5000"]
-    // listens: Option<Vec<String>>,
+    /* ------------ */
+    /* Perun checks */
+    /* ------------ */
 
     /// watch if service domains is a vector of PROTO+FQDN elements like: ["https://my.shiny.domain.com/page2?param=1", "http://some.com"]
     pub urls: Option<Vec<String>>,
 
-    /// CHECK_INTERVAL
-    pub checks_interval: Option<u64>,
+    // watch service availability through UNIX socket:
+    pub unix_socket: Option<String>,
 
-    /// CHECK_URL_TIMEOUT
-    pub checks_url_timeout: Option<u64>,
+    /// minimum disk free space in MiB
+    pub disk_minimum_space: Option<i64>,
 
-    /// DEATHWATCH_INTERVAL
-    pub deathwatches_interval: Option<u64>,
+    /// minimum disk free inodes
+    pub disk_minimum_inodes: Option<i64>,
 
-    /// Slack Notifications can be overridden on service init file
-    pub slack_webhook_url: Option<String>,
-    pub slack_alert_channel: Option<String>,
+    /// perform pid process check
+    pub pid_file: Option<String>,
+
 }
 
 

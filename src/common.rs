@@ -41,7 +41,7 @@ pub static DEFAULT_LOCK: &'static str = "/.deities.lock";
 
 
 
-// Overrideable defaults:
+// Override-able defaults (fallbacks if value unset in ini file):
 
 /// Veles endless loop pause interval
 pub static CHECKS_INTERVAL: u64 = 3000;
