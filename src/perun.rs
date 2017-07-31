@@ -39,9 +39,9 @@ impl Perun for Service {
         for url in self.urls() {
             // let mut dst = Vec::new();
             let mut easy = Easy::new();
-            easy.connect_timeout(Duration::from_millis(self.clone().check_urltimeout())).unwrap();
-            easy.timeout(Duration::from_millis(self.clone().check_urltimeout())).unwrap();
-            easy.dns_cache_timeout(Duration::from_millis(self.clone().check_urltimeout())).unwrap();
+            easy.connect_timeout(Duration::from_millis(self.clone().checks_url_timeout())).unwrap();
+            easy.timeout(Duration::from_millis(self.clone().checks_url_timeout())).unwrap();
+            easy.dns_cache_timeout(Duration::from_millis(self.clone().checks_url_timeout())).unwrap();
             easy.tcp_nodelay(true).unwrap();
             easy.follow_location(true).unwrap();
             easy.ssl_verify_host(true).unwrap();
@@ -94,8 +94,8 @@ impl Perun for Service {
 
     fn try_disk_check(&self) -> Result<Mortal, Mortal> {
         match self.check_disk_space() {
-            (space, _) if space / 1024 < DISK_MINIMUMSPACE => Err(CheckDiskSpace {service: self.clone()}),
-            (_, inodes) if inodes < DISK_MINIMUMINODES => Err(CheckDiskInodes {service: self.clone()}),
+            (space, _) if space / 1024 < DISK_MINIMUM_SPACE => Err(CheckDiskSpace {service: self.clone()}),
+            (_, inodes) if inodes < DISK_MINIMUM_INODES => Err(CheckDiskInodes {service: self.clone()}),
             (_space, _inodes) => Ok(OkDiskCheck {service: self.clone()}),
         }
     }

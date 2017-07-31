@@ -7,20 +7,19 @@ use service::Service;
 
 /// standard fields for service init file:
 pub trait InitFields {
-    fn disk_space(&self) -> i64;
-    fn disk_inodes(&self) -> i64;
-    fn slack_webhookurl(&self) -> String;
-    fn slack_alertchannel(&self) -> String;
-    fn check_interval(&self) -> u64;
-    fn check_urltimeout(&self) -> u64;
-    fn deathwatch_interval(&self) -> u64;
+    fn disk_minimum_space(&self) -> i64;
+    fn disk_minimum_inodes(&self) -> i64;
+    fn slack_webhook_url(&self) -> String;
+    fn slack_alert_channel(&self) -> String;
+    fn checks_interval(&self) -> u64;
+    fn checks_url_timeout(&self) -> u64;
+    fn deathwatches_interval(&self) -> u64;
     fn user(&self) -> String;
     fn group(&self) -> String;
     fn work_dir(&self) -> String;
     fn pid_file(&self) -> String;
     fn unix_socket(&self) -> String;
     fn urls(&self) -> Vec<String>;
-    fn ini_file(&self) -> String;
 }
 
 
@@ -29,97 +28,97 @@ impl InitFields for Service {
 
 
     /// minimum disk space on disk required - in MiB
-    fn disk_space(&self) -> i64 {
-        match self.disk_space.clone() {
-            Some(disk_space) => disk_space,
+    fn disk_minimum_space(&self) -> i64 {
+        match self.disk_minimum_space.clone() {
+            Some(disk_minimum_space) => disk_minimum_space,
             None =>
-                match env::var("DISK_MINIMUMSPACE") {
-                    Ok(disk_space) => disk_space.parse().unwrap_or(DISK_MINIMUMSPACE),
-                    Err(_) => DISK_MINIMUMSPACE,
+                match env::var("DISK_MINIMUM_SPACE") {
+                    Ok(disk_minimum_space) => disk_minimum_space.parse().unwrap_or(DISK_MINIMUM_SPACE),
+                    Err(_) => DISK_MINIMUM_SPACE,
                 },
         }
     }
 
     // minimum disk inodes on disk required
-    fn disk_inodes(&self) -> i64 {
-        match self.disk_inodes.clone() {
-            Some(disk_inodes) => disk_inodes,
+    fn disk_minimum_inodes(&self) -> i64 {
+        match self.disk_minimum_inodes.clone() {
+            Some(disk_minimum_inodes) => disk_minimum_inodes,
             None =>
-                match env::var("DISK_MINIMUMINODES") {
-                    Ok(disk_inodes) => disk_inodes.parse().unwrap_or(DISK_MINIMUMINODES),
-                    Err(_) => DISK_MINIMUMINODES,
+                match env::var("DISK_MINIMUM_INODES") {
+                    Ok(disk_minimum_inodes) => disk_minimum_inodes.parse().unwrap_or(DISK_MINIMUM_INODES),
+                    Err(_) => DISK_MINIMUM_INODES,
                 },
         }
     }
 
 
-    fn slack_webhookurl(&self) -> String {
-        match self.slack_webhookurl.clone() {
-            Some(slack_webhookurl) => slack_webhookurl,
+    fn slack_webhook_url(&self) -> String {
+        match self.slack_webhook_url.clone() {
+            Some(slack_webhook_url) => slack_webhook_url,
             None =>
-                match env::var("SLACK_WEBHOOKURL") {
-                    Ok(slack_webhookurl) => slack_webhookurl.to_owned(),
+                match env::var("SLACK_WEBHOOK_URL") {
+                    Ok(slack_webhook_url) => slack_webhook_url.to_owned(),
                     Err(_) => "".to_string(),
                 },
         }
     }
 
 
-    fn slack_alertchannel(&self) -> String {
-        match self.slack_alertchannel.clone() {
-            Some(slack_alertchannel) => slack_alertchannel,
+    fn slack_alert_channel(&self) -> String {
+        match self.slack_alert_channel.clone() {
+            Some(slack_alert_channel) => slack_alert_channel,
             None =>
-                match env::var("SLACK_ALERTCHANNEL") {
-                    Ok(slack_alertchannel) => slack_alertchannel.to_owned(),
+                match env::var("SLACK_ALERT_CHANNEL") {
+                    Ok(slack_alert_channel) => slack_alert_channel.to_owned(),
                     Err(_) => SLACK_ALERT_CHANNEL.to_string(),
                 },
         }
     }
 
 
-    fn check_interval(&self) -> u64 {
-        match self.check_interval.clone() {
-            Some(check_interval) => check_interval,
+    fn checks_interval(&self) -> u64 {
+        match self.checks_interval.clone() {
+            Some(checks_interval) => checks_interval,
             None =>
-                match env::var("CHECK_INTERVAL") {
-                    Ok(check_interval) =>
-                        match check_interval.parse().unwrap_or(CHECK_INTERVAL) {
+                match env::var("CHECKS_INTERVAL") {
+                    Ok(checks_interval) =>
+                        match checks_interval.parse().unwrap_or(CHECKS_INTERVAL) {
                             v if v < 100 => 100, // pointless to do it more often than 10 times per second
                             v => v
                         },
-                    Err(_) => CHECK_INTERVAL,
+                    Err(_) => CHECKS_INTERVAL,
                 },
         }
     }
 
 
-    fn check_urltimeout(&self) -> u64 {
-        match self.check_urltimeout.clone() {
-            Some(check_urltimeout) => check_urltimeout,
+    fn checks_url_timeout(&self) -> u64 {
+        match self.checks_url_timeout.clone() {
+            Some(checks_url_timeout) => checks_url_timeout,
             None =>
-                match env::var("CHECK_URL_TIMEOUT") {
+                match env::var("CHECKS_URL_TIMEOUT") {
                     Ok(timeout) =>
-                        match timeout.parse().unwrap_or(CHECK_URL_TIMEOUT) {
+                        match timeout.parse().unwrap_or(CHECKS_URL_TIMEOUT) {
                             v if v < 1000 => 1000, // pointless to expect url check to be less than a second
                             v => v
                         },
-                    Err(_) => CHECK_URL_TIMEOUT,
+                    Err(_) => CHECKS_URL_TIMEOUT,
                 },
         }
     }
 
 
-    fn deathwatch_interval(&self) -> u64 {
-        match self.deathwatch_interval.clone() {
-            Some(deathwatch_interval) => deathwatch_interval,
+    fn deathwatches_interval(&self) -> u64 {
+        match self.deathwatches_interval.clone() {
+            Some(deathwatches_interval) => deathwatches_interval,
             None =>
-                match env::var("DEATHWATCH_INTERVAL") {
+                match env::var("DEATHWATCHES_INTERVAL") {
                     Ok(interval) =>
-                        match interval.parse().unwrap_or(DEATHWATCH_INTERVAL) {
+                        match interval.parse().unwrap_or(DEATHWATCHES_INTERVAL) {
                             v if v < 2000 => 2000, // pointless to wait less than 2 seconds for process to react
                             v => v
                         },
-                    Err(_) => DEATHWATCH_INTERVAL,
+                    Err(_) => DEATHWATCHES_INTERVAL,
                 },
         }
     }

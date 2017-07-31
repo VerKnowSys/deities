@@ -73,8 +73,8 @@ impl Display for Mortal {
             &Mortal::CheckPidfileUnaccessible{ref service, ref cause} => format!("Cannot access pid file for: {}. Reason: {}!", service, cause),
             &Mortal::CheckUnixSocket{ref service, ref cause} => format!("Couldn't connect through UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
             &Mortal::CheckUnixSocketMissing{ref service, ref cause} => format!("Missing expected UNIX socket: {} of: {}. Reason: {}!", service.unix_socket(), service, cause),
-            &Mortal::CheckDiskSpace{ref service} => format!("Disk space check alert! Available: {} MiB!", service.disk_space() / 1024),
-            &Mortal::CheckDiskInodes{ref service} => format!("Disk inodes check alert! Available: {} !", service.disk_inodes()),
+            &Mortal::CheckDiskSpace{ref service} => format!("Disk space check alert! Available: {} MiB!", service.disk_minimum_space() / 1024),
+            &Mortal::CheckDiskInodes{ref service} => format!("Disk inodes check alert! Available: {} !", service.disk_minimum_inodes()),
 
             &Mortal::ServiceNoStartDefined{ref service} => format!("No 'start' value in configuration of: {}!", service),
             &Mortal::ServiceStartFailure{ref service, ref cause} => format!("Failed to launch commands: {} for {}! Reason: {}", service.clone().start.unwrap_or("#no-commands".to_string()), service, cause),

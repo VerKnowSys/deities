@@ -22,8 +22,12 @@ use mortal::Mortal::*;
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct Service {
 
-    /* Veles: */
+    /// Service name. Can be overriden. By default it grabs name of ini file.
     name: Option<String>,
+
+    /// default initialization file of service
+    ini_file: Option<String>,
+
     pub user: Option<String>,
     pub group: Option<String>,
 
@@ -42,7 +46,7 @@ pub struct Service {
     /* Perun: */
 
     /// service main service configuration file
-    pub conf_file: Option<String>,
+    conf_file: Option<String>,
 
     /// determines directory to jump - before starting service
     pub work_dir: Option<String>,
@@ -50,8 +54,8 @@ pub struct Service {
     // watch service availability through UNIX socket:
     pub unix_socket: Option<String>,
 
-    pub disk_space: Option<i64>,
-    pub disk_inodes: Option<i64>,
+    pub disk_minimum_space: Option<i64>,
+    pub disk_minimum_inodes: Option<i64>,
 
     // watch service availability through pid_file
     pub pid_file: Option<String>,
@@ -62,21 +66,18 @@ pub struct Service {
     /// watch if service domains is a vector of PROTO+FQDN elements like: ["https://my.shiny.domain.com/page2?param=1", "http://some.com"]
     pub urls: Option<Vec<String>>,
 
-    /// default initialization file of service
-    pub ini_file: Option<String>,
-
     /// CHECK_INTERVAL
-    pub check_interval: Option<u64>,
+    pub checks_interval: Option<u64>,
 
     /// CHECK_URL_TIMEOUT
-    pub check_urltimeout: Option<u64>,
+    pub checks_url_timeout: Option<u64>,
 
     /// DEATHWATCH_INTERVAL
-    pub deathwatch_interval: Option<u64>,
+    pub deathwatches_interval: Option<u64>,
 
     /// Slack Notifications can be overridden on service init file
-    pub slack_webhookurl: Option<String>,
-    pub slack_alertchannel: Option<String>,
+    pub slack_webhook_url: Option<String>,
+    pub slack_alert_channel: Option<String>,
 }
 
 

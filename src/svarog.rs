@@ -52,8 +52,8 @@ impl Svarog for Service {
 
     fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
         let local: DateTime<Local> = Local::now();
-        let webhookurl = self.slack_webhookurl();
-        let alertchannel = self.slack_alertchannel();
+        let webhookurl = self.slack_webhook_url();
+        let alertchannel = self.slack_alert_channel();
 
         match &webhookurl[..] {
             "" => {
@@ -157,7 +157,7 @@ impl Svarog for Service {
             if kill(pid, 0) == 0 {
                 trace!("Process with pid: {}, still exists in process list! Perun enters the room!", pid);
                 if signal != libc::SIGCONT {
-                    let deathwatch_ival = self.clone().deathwatch_interval();
+                    let deathwatch_ival = self.clone().deathwatches_interval();
                     debug!("Deathwatch interval: {} ms", deathwatch_ival);
                     sleep(Duration::from_millis(deathwatch_ival))
                 }

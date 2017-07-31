@@ -109,7 +109,7 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                     match Service::from(service_definition_file.to_string()) {
                         // perfom Perun checks on service definition:
                         Ok(service) => {
-                            let interval = service.check_interval();
+                            let interval = service.checks_interval();
                             debug!("Sleep interval: {} ms, of {}", interval, service);
                             sleep(Duration::from_millis(interval));
 
@@ -169,7 +169,7 @@ fn eternity() -> () {
         match &out[..] {
             "" => {
                 debug!("No services found under /Services, throttling..");
-                sleep(Duration::from_millis(CHECK_INTERVAL))
+                sleep(Duration::from_millis(CHECKS_INTERVAL))
             },
             traced => trace!("{}", traced),
         }
