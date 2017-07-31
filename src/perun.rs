@@ -103,7 +103,7 @@ impl Perun for Service {
 
     /*
 
-    Linux =>
+    Linux => (Inodes check was not implemented due to unability to perform such check with single df command under GNU base)
 
         "df /"
         #
@@ -136,15 +136,41 @@ impl Perun for Service {
     fn check_disk_space(&self) -> (i64, i64) {
         lazy_static! {
             static ref FIRST_LINE: Regex = Regex::new(r"^.*\n").unwrap();
+            static ref SPACE: Regex = Regex::new(r"(\s+)").unwrap();
         }
-        let space = Command::new("/bin/df").arg("-k").arg("/").output().unwrap();
-        let space_data = FIRST_LINE.replace_all(space.output, "");
+        match Command::new("/bin/df").arg("-k").arg("/").output() {
+            Ok(data) => {
+                match String::from_utf8(data.stdout) {
+                    Ok(parsed) => {
+                        let inodes_data = FIRST_LINE.replace(parsed.as_ref(), "");
+                        let mut it = SPACE.split(inodes_data.as_ref());
+                        it.next(); it.next();
+                        let free_disk_space_bytes = match it.next() {
+                            Some(content) =>
+                                match content.parse() {
+                                    Ok(number) => number,
+                                    Err(cause) => {
+                                        error!("Parse failure. Reason: {:?}", cause);
+                                        -1
+                                    },
+                                },
+                            None => 0,
+                        };
 
-        let inodes = Command::new("/bin/df").arg("-ki").arg("/").output().unwrap();
-        let inodes_data = FIRST_LINE.replace_all(inodes.stdout.to_owned(), "");
-
-        info!("Space - {:?}\nInodes - {:?}", space_data, inodes_data);
-        (0, 0)
+                        debug!("Free disk space: {} MiB. (inodes: Skipped for Linux)", free_disk_space_bytes / 1024);
+                        (free_disk_space_bytes, 1000000)
+                    },
+                    Err(cause) => {
+                        error!("Failed utf8 parse! Reason: {:?}", cause);
+                        (-2, -2)
+                    }
+                }
+            },
+            Err(cause) => {
+                error!("Failure! Reason: {:?}", cause);
+                (-1, -1)
+            }
+        }
     }
 
 
