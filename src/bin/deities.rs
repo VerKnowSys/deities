@@ -118,7 +118,7 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                 Err(error) => {
                                     match service.notification(
                                         format!("Detected malfunction of: {}", service), error.to_string()) {
-                                        Ok(msg) => trace!("Notification sent: {}", msg),
+                                        Ok(msg) => debug!("Notification sent: {}", msg),
                                         Err(er) => error!("{}", er),
                                     }
                                     warn!("Detected malfunction of: {}. Reason: {}", service, error);
