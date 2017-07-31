@@ -136,6 +136,15 @@ impl Service {
     }
 
 
+    /// returns init file name
+    fn ini_file(&self) -> String {
+        match self.ini_file.clone() {
+            Some(file_path) => file_path,
+            None => "".to_string(),
+        }
+    }
+
+
     pub fn styled(&self) -> ColoredString {
         self.to_string().underline().italic()
     }

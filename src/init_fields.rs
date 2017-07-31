@@ -186,14 +186,4 @@ impl InitFields for Service {
         }
     }
 
-
-    /// returns init file name
-    fn ini_file(&self) -> String {
-        match self.ini_file.clone() {
-            Some(file_path) => file_path,
-            None => "undefined-ini-file".to_string(),
-        }
-    }
-
-
 }
