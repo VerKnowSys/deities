@@ -117,10 +117,10 @@ impl Perun for Service {
 
     fn try_disk_check(&self) -> Result<Mortal, Mortal> {
         match self.check_disk_space() {
-            (space, _) if space / 1024 < DISK_MINIMUM_SPACE => {
+            (space, _) if space / 1024 < self.clone().disk_minimum_space() => {
                 Err(CheckDiskSpace { service: self.clone() })
             }
-            (_, inodes) if inodes < DISK_MINIMUM_INODES => {
+            (_, inodes) if inodes < self.clone().disk_minimum_inodes() => {
                 Err(CheckDiskInodes { service: self.clone() })
             }
             (_space, _inodes) => Ok(OkDiskCheck { service: self.clone() }),
