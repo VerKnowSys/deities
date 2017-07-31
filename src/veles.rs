@@ -12,21 +12,16 @@ use mortal::Mortal;
 use mortal::Mortal::*;
 
 
-/*
- * Veles is a service spawner deity
- */
+// Veles is a service spawner deity
+//
 pub trait Veles {
-
     fn create_shell_wrapper(&self, commands: String) -> String;
 
     fn start_service(&self) -> Result<u32, Mortal>;
-
 }
 
 
 impl Veles for Service {
-
-
     fn create_shell_wrapper(&self, commands: String) -> String {
         let wrapper = format!("{}/.{}.sh", SERVICES_DIR, self.name());
         match File::create(wrapper.clone()) {
@@ -41,7 +36,7 @@ impl Veles for Service {
                                     Ok(_) => trace!("Cleanup routine written successfully"),
                                     Err(we) => error!("Cleanup write error!. Reason: {}", we),
                                 }
-                            },
+                            }
                             None => trace!("No cleanup routine to inject. Skipped."),
                         }
 
@@ -49,17 +44,13 @@ impl Veles for Service {
                             Ok(_) => {
                                 match file.flush() {
                                     Ok(_) => trace!("Flushed successfully"),
-                                    Err(fe) => error!("Flush failed! Reason: {}", fe)
+                                    Err(fe) => error!("Flush failed! Reason: {}", fe),
                                 }
-                            },
-                            Err(we) => {
-                                error!("Write2 error!. Reason: {}", we)
                             }
+                            Err(we) => error!("Write2 error!. Reason: {}", we),
                         }
-                    },
-                    Err(we) => {
-                        error!("Write1 error!. Reason: {}", we)
                     }
+                    Err(we) => error!("Write1 error!. Reason: {}", we),
                 }
                 match file.metadata() {
                     Ok(metadata) => {
@@ -69,15 +60,11 @@ impl Veles for Service {
                             Ok(_) => trace!("Wrapper executable bits set for {:?}!", file),
                             Err(fail) => error!("Failure setting permissions: {}", fail),
                         }
-                    },
-                    Err(e) => {
-                        error!("Can't set mode! Reason: {}", e)
                     }
+                    Err(e) => error!("Can't set mode! Reason: {}", e),
                 }
-            },
-            Err(e) => {
-                error!("create_shell_wrapper: {}", e)
             }
+            Err(e) => error!("create_shell_wrapper: {}", e),
         }
         wrapper
     }
@@ -92,7 +79,9 @@ impl Veles for Service {
                 cmd.arg(self.create_shell_wrapper(commands.to_string()));
 
                 cmd.current_dir(self.work_dir());
-                trace!("Built command line: {:?} for working dir: {}", commands, self.work_dir());
+                trace!("Built command line: {:?} for working dir: {}",
+                       commands,
+                       self.work_dir());
 
                 // NOTE: always set stdin to null:
                 cmd.stdin(Stdio::null());
@@ -103,20 +92,16 @@ impl Veles for Service {
                     Some(uid) => {
                         trace!("Setting service UID of valid user: {}", uid.name());
                         cmd.uid(uid.uid());
-                    },
-                    None => {
-                        warn!("Username {} not found in system!", self.user())
                     }
+                    None => warn!("Username {} not found in system!", self.user()),
                 }
 
                 match get_group_by_name(self.group().as_ref()) {
                     Some(gid) => {
                         trace!("Setting service GID of valid group: {}", gid.name());
                         cmd.gid(gid.gid());
-                    },
-                    None => {
-                        warn!("Username {} not found in system!", self.group())
                     }
+                    None => warn!("Username {} not found in system!", self.group()),
                 }
 
                 match cmd.spawn() {
@@ -128,11 +113,14 @@ impl Veles for Service {
                     }
                     Err(e) => {
                         error!("Failed to spawn commands: {:?}. Reason: {}", cmd, e);
-                        Err(ServiceStartFailure{service: self.clone(), cause: e})
+                        Err(ServiceStartFailure {
+                            service: self.clone(),
+                            cause: e,
+                        })
                     }
                 }
-            },
-            None => Err(ServiceNoStartDefined{service: self.clone()}),
+            }
+            None => Err(ServiceNoStartDefined { service: self.clone() }),
         }
     }
 }

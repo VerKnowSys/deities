@@ -34,7 +34,8 @@ pub static DEFAULT_NOTIFICATION_NAME: &'static str = "Failure Reporter";
 pub static DEFAULT_SHELL: &'static str = "/bin/sh";
 
 /// default PATH for service
-pub static DEFAULT_PATH: &'static str = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
+pub static DEFAULT_PATH: &'static str = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:\
+                                         /usr/local/sbin";
 
 /// default lock file
 pub static DEFAULT_LOCK: &'static str = "/.deities.lock";
@@ -60,4 +61,3 @@ pub static DISK_MINIMUM_INODES: i64 = 4096;
 
 /// default channel to post notifications
 pub static SLACK_ALERT_CHANNEL: &'static str = "#ops-status";
-

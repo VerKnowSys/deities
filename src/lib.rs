@@ -17,7 +17,8 @@ extern crate hostname;
 extern crate uname;
 extern crate users;
 extern crate fs2;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate regex;
 
 

@@ -50,13 +50,26 @@ use deities::init_fields::*;
 /// initialize internal logger
 fn init_logger() {
     let logger = DispatchConfig {
-        format: Box::new(|message: &str, log_level: &log::LogLevel, _location: &log::LogLocation| {
+        format: Box::new(|message: &str,
+                          log_level: &log::LogLevel,
+                          _location: &log::LogLocation| {
             // This is a fairly simple format, though it's possible to do more complicated ones.
             // This closure can contain any code, as long as it produces a String message.
-            let tim = time::now().strftime("%Y-%m-%d %H:%M:%S").unwrap().to_string().black().bold().dimmed();
+            let tim = time::now()
+                .strftime("%Y-%m-%d %H:%M:%S")
+                .unwrap()
+                .to_string()
+                .black()
+                .bold()
+                .dimmed();
             let (lev, msg) = match log_level {
-                &Error => (log_level.to_string().red().underline().dimmed(), message.red().underline()),
-                &Warn => (log_level.to_string().yellow().underline().dimmed(), message.yellow().underline()),
+                &Error => {
+                    (log_level.to_string().red().underline().dimmed(), message.red().underline())
+                }
+                &Warn => {
+                    (log_level.to_string().yellow().underline().dimmed(),
+                     message.yellow().underline())
+                }
                 &Info => (log_level.to_string().white().underline().dimmed(), message.white()),
                 &Debug => (log_level.to_string().cyan().underline().dimmed(), message.cyan()),
                 &Trace => (log_level.to_string().magenta().underline().dimmed(), message.magenta()),
@@ -67,24 +80,18 @@ fn init_logger() {
         level: LogLevelFilter::Trace,
     };
 
-    /* dynamic logger configuration */
+    // dynamic logger configuration
     match env::var(LOG_ENV) {
         Ok(val) => {
             match val.as_ref() {
-                "trace" =>
-                    init_global_logger(logger, LogLevelFilter::Trace).unwrap(),
-                "debug" =>
-                    init_global_logger(logger, LogLevelFilter::Debug).unwrap(),
-                "info" =>
-                    init_global_logger(logger, LogLevelFilter::Info).unwrap(),
-                "warn" =>
-                    init_global_logger(logger, LogLevelFilter::Warn).unwrap(),
-                "error" =>
-                    init_global_logger(logger, LogLevelFilter::Error).unwrap(),
-                _ =>
-                    init_global_logger(logger, LogLevelFilter::Info).unwrap(),
+                "trace" => init_global_logger(logger, LogLevelFilter::Trace).unwrap(),
+                "debug" => init_global_logger(logger, LogLevelFilter::Debug).unwrap(),
+                "info" => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
+                "warn" => init_global_logger(logger, LogLevelFilter::Warn).unwrap(),
+                "error" => init_global_logger(logger, LogLevelFilter::Error).unwrap(),
+                _ => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
             }
-        },
+        }
         Err(_) => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
     }
 
@@ -92,16 +99,14 @@ fn init_logger() {
 
 
 fn list_services() -> Paths {
-    glob(
-        &format!("{}/{}", SERVICES_DIR, SERVICES_GLOB)
-    ).expect(
-        &format!("Failed to match {}/{}", SERVICES_DIR, SERVICES_GLOB)
-    )
+    glob(&format!("{}/{}", SERVICES_DIR, SERVICES_GLOB))
+        .expect(&format!("Failed to match {}/{}", SERVICES_DIR, SERVICES_GLOB))
 }
 
 
 fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
-    debug!("Thread UUID: {}", thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
+    debug!("Thread UUID: {}",
+           thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
     match service_to_monitor.unwrap().file_name() {
         Some(path) => {
             match path.to_str() {
@@ -121,25 +126,32 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                         Ok(msg) => debug!("Notification sent: {}", msg),
                                         Err(er) => error!("{}", er),
                                     }
-                                    warn!("Detected malfunction of: {}. Reason: {}", service, error);
+                                    warn!("Detected malfunction of: {}. Reason: {}",
+                                          service,
+                                          error);
                                     // notification sent, now try handling service process
                                     match service.start_service() {
-                                        Ok(_) => info!("Service started: {}", service.name().green().bold()),
-                                        Err(cause) => error!("Failed to start service. Reason: {}", cause),
+                                        Ok(_) => {
+                                            info!("Service started: {}",
+                                                  service.name().green().bold())
+                                        }
+                                        Err(cause) => {
+                                            error!("Failed to start service. Reason: {}", cause)
+                                        }
                                     }
-                                },
+                                }
                             }
-                        },
+                        }
 
                         Err(reason) => error!("Definition load failure: {:?}", reason),
                     }
-                },
+                }
 
                 None => error!("Unable to open service file in path: {:?}", path),
             }
-        },
+        }
 
-        None => error!("No access to read service definition file?")
+        None => error!("No access to read service definition file?"),
     }
 }
 
@@ -148,29 +160,41 @@ fn eternity() -> () {
     let cycle_count = Arc::new(AtomicUsize::new(0));
     loop {
         cycle_count.fetch_add(1, Ordering::SeqCst);
-        debug!("Iteration no. {}", format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
+        debug!("Iteration no. {}",
+               format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
 
         // let handlers: Vec<thread::JoinHandle<_>> =
-        let out: String = list_services().flat_map(|service_to_monitor| {
-            let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
-            thread_builder.spawn( || {
-                spawn_thread(service_to_monitor)
+        let out: String = list_services()
+            .flat_map(|service_to_monitor| {
+                let thread_builder = Builder::new().name(Uuid::new_v4().to_string());
+                thread_builder.spawn(|| spawn_thread(service_to_monitor))
             })
-        }).map(|handle| {
-            let name = format!("{}", handle.thread().name().unwrap_or("Unnamed"));
-            (handle, name)
-        }).map(|(handle, name)| {
-            match handle.join() {
-                Ok(_) => format!("Thread: {} joined iteration: {}", name, cycle_count.load(Ordering::SeqCst)),
-                Err(cause) => format!("Thread: {} failed to join iteration: {}! Internal cause: {:?}", name, cycle_count.load(Ordering::SeqCst), cause),
-            }
-        }).collect();
+            .map(|handle| {
+                let name = format!("{}", handle.thread().name().unwrap_or("Unnamed"));
+                (handle, name)
+            })
+            .map(|(handle, name)| {
+                match handle.join() {
+                    Ok(_) => {
+                        format!("Thread: {} joined iteration: {}",
+                                name,
+                                cycle_count.load(Ordering::SeqCst))
+                    }
+                    Err(cause) => {
+                        format!("Thread: {} failed to join iteration: {}! Internal cause: {:?}",
+                                name,
+                                cycle_count.load(Ordering::SeqCst),
+                                cause)
+                    }
+                }
+            })
+            .collect();
 
         match &out[..] {
             "" => {
                 debug!("No services found under /Services, throttling..");
                 sleep(Duration::from_millis(CHECKS_INTERVAL))
-            },
+            }
             traced => trace!("{}", traced),
         }
     }
@@ -183,17 +207,23 @@ fn main() {
     let users = UsersCache::new();
     let lock_name = match users.get_current_uid() {
         0 => DEFAULT_LOCK.to_string(),
-        _ => format!("{}{}", env::var("HOME").unwrap_or("/tmp".to_string()), DEFAULT_LOCK),
+        _ => {
+            format!("{}{}",
+                    env::var("HOME").unwrap_or("/tmp".to_string()),
+                    DEFAULT_LOCK)
+        }
     };
 
     let lockfile = match File::open(lock_name.clone()) {
         Ok(file) => file,
-        Err(_) => match File::create(lock_name.clone()) {
-            Ok(file) => file,
-            Err(cause) => {
-                error!("Lock creation error: {}", cause);
-                unsafe {
-                    libc::exit(libc::EPERM);
+        Err(_) => {
+            match File::create(lock_name.clone()) {
+                Ok(file) => file,
+                Err(cause) => {
+                    error!("Lock creation error: {}", cause);
+                    unsafe {
+                        libc::exit(libc::EPERM);
+                    }
                 }
             }
         }
@@ -206,7 +236,7 @@ fn main() {
             unsafe {
                 libc::exit(libc::EWOULDBLOCK);
             }
-        },
+        }
     }
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
@@ -217,6 +247,5 @@ fn main() {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn it_works() {
-    }
+    fn it_works() {}
 }
