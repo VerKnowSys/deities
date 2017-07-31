@@ -189,7 +189,7 @@ impl Perun for Service {
                         it.next(); it.next(); it.next();
                         let free_disk_space_bytes = match it.next() {
                             Some(content) =>
-                                match content.parse::<i64>() {
+                                match content.parse() {
                                     Ok(number) => number,
                                     Err(cause) => {
                                         error!("Parse failure. Reason: {:?}", cause);
@@ -201,7 +201,7 @@ impl Perun for Service {
                         it.next(); it.next();
                         let free_disk_inodes = match it.next() {
                             Some(content) =>
-                                match content.parse::<i64>() {
+                                match content.parse() {
                                     Ok(number) => number,
                                     Err(cause) => {
                                         error!("Parse failure. Reason: {:?}", cause);
