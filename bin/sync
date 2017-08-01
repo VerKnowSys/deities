@@ -1,0 +1,13 @@
+#!/bin/sh
+
+
+echo "Setting up origins"
+git remote add origin verknowsys@git.verknowsys.com:/git/deities.git 2>/dev/null
+git remote add github git@github.com:young-skilled/deities.git 2>/dev/null
+
+echo "Syncing both origins"
+for org in origin github; do
+    git pull ${org} HEAD
+    git push ${org} --tags
+    git push ${org} --all
+done
