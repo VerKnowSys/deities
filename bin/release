@@ -1,0 +1,70 @@
+#!/bin/sh
+
+PATH="/Software/Rust/exports:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+
+# load name:
+eval $(cat Cargo.toml 2>/dev/null | egrep '^name.*=.*"' 2>/dev/null | sed 's/ //g' 2>/dev/null)
+
+# load $version:
+eval $(cat Cargo.toml 2>/dev/null | egrep '^version.*=.*"' 2>/dev/null | sed 's/ //g' 2>/dev/null)
+
+# sanity checks
+if [ -z "${name}" ]; then
+    echo "Missing name! Make sure you launch command from project root dir!"
+    exit 1
+fi
+
+if [ -z "${version}" ]; then
+    echo "Missing version! Make sure you launch command from project root dir!"
+    exit 1
+fi
+
+# some standard DRY stuff:
+release_ext=".tar.xz"
+release_root="releases/${name}-${version}"
+release_bin="${release_root}/bin/${name}"
+release_osaware="${name}-${version}-$(uname 2>/dev/null)-$(uname -m 2>/dev/null)"
+release_archive="releases/${release_osaware}${release_ext}"
+
+# Proceeding with release!
+
+echo
+echo "Releasing: ${name}, version: ${version}, as: ${release_root}"
+
+echo
+echo "Cleaning"
+cargo clean
+
+echo
+echo "Updating"
+cargo update
+
+echo
+echo "Building release"
+bin/build --release
+
+echo
+echo "Installing"
+mkdir -p \
+    "${release_root}/bin"
+install -v \
+    "target/release/${name}" \
+    "${release_bin}"
+strip -v \
+    "${release_bin}"
+
+echo
+echo "Compiling release archive"
+tar cfJ \
+    "${release_archive}" \
+    "${release_root}"
+
+if [ "dmilith" = "${USER}" ]; then
+    remote="dmilith@v:/home/dmilith/Web/Public/Deities"
+
+    echo
+    echo "Pushing archive: ${release_archive} to remote: ${remote}"
+    scp -4 \
+        "${release_archive}" \
+        "${remote}/${release_osaware}${release_ext}"
+fi
