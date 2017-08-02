@@ -2,3 +2,4 @@ target
 Cargo.lock
 releases/
 .idea/
+/Deities.sublime-workspace
