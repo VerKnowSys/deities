@@ -1,0 +1,28 @@
+{
+	"folders": [
+        {
+            "path": ".",
+            "name": "Deities",
+            "file_include_patterns": ["*.toml", "*.rs", "*.md", "bin/*"],
+            "folder_include_patterns": ["src", "docs", "bin"],
+        },
+        {
+            "path": "docs",
+            "file_include_patterns": ["*.md"],
+            "name": "Documentation"
+        },
+        {
+            "path": "bin",
+            "name": "Scripts"
+        },
+        {
+            "path": "src",
+            "name": "Source",
+            "folder_exclude_patterns": ["bin"],
+        },
+        {
+            "path": "src/bin",
+            "name": "Runnable"
+        },
+    ]
+}
