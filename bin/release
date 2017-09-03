@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PATH="/Software/Rust/exports:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+PATH="/Software/Rust/exports:/Software/Make/exports:/Software/Curl/exports:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 
 # load name:
 eval $(cat Cargo.toml 2>/dev/null | egrep '^name.*=.*"' 2>/dev/null | sed 's/ //g' 2>/dev/null)
