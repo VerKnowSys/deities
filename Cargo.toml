@@ -2,7 +2,7 @@
 name = "deities"
 authors = ["Daniel (dmilith) Dettlaff <dmilith@me.com>"]
 description = "Deities are three Slavic gods - Perun (supervisor), Veles (service spawner), Svarog (low level smith)"
-version = "0.6.4"
+version = "0.6.4.1"
 
 [dependencies]
 toml = "0.4"
