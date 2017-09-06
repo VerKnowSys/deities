@@ -171,6 +171,7 @@ impl Perun for Service {
                         let mut it = SPACE.split(inodes_data.as_ref());
                         it.next();
                         it.next();
+                        it.next();
                         let free_disk_space_bytes = match it.next() {
                             Some(content) => {
                                 match content.parse() {
