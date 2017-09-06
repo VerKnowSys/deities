@@ -45,6 +45,7 @@ use deities::service::Service;
 use deities::perun::Perun;
 use deities::svarog::Svarog;
 use deities::init_fields::*;
+use deities::mortal::Mortal;
 
 
 /// initialize internal logger
@@ -120,16 +121,39 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
 
                             match service.checks_for() {
                                 Ok(ok) => info!("{}", ok),
+
+                                /* Handle disk space check without any following action */
+                                Err(Mortal::CheckDiskSpace{ service }) => {
+                                    warn!("Service requires: {} MiB free disk space!", service.disk_minimum_space() / 1024);
+                                    match service.notification(
+                                        format!("Service requires: {} MiB free", service.disk_minimum_space() / 1024), "Disk space check failure!".to_string()) {
+                                        Ok(msg) => debug!("Done notification. Result: {}", msg),
+                                        Err(er) => error!("Error with notification: {}", er),
+                                    }
+                                },
+
+                                /* Handle disk inodes check without any following action */
+                                Err(Mortal::CheckDiskInodes{ service }) => {
+                                    warn!("Service requires: {} free inodes!", service.disk_minimum_inodes());
+                                    match service.notification(
+                                        format!("Service requires: {} free inodes", service.disk_minimum_inodes()), "Disk inodes check failure!".to_string()) {
+                                        Ok(msg) => debug!("Done notification. Result: {}", msg),
+                                        Err(er) => error!("Error with notification: {}", er),
+                                    }
+                                },
+
+                                /*
+                                    NOTE: for other types of failures, we want to handle cleanup/ start routines:
+                                */
                                 Err(error) => {
+                                    warn!("Detected malfunction of: {}. Reason: {}", service, error);
                                     match service.notification(
                                         format!("Detected malfunction of: {}", service), error.to_string()) {
                                         Ok(msg) => debug!("Notification sent: {}", msg),
                                         Err(er) => error!("{}", er),
                                     }
-                                    warn!("Detected malfunction of: {}. Reason: {}",
-                                          service,
-                                          error);
-                                    // notification sent, now try handling service process
+
+                                    /* notification sent, now try handling service process */
                                     match service.start_service() {
                                         Ok(_) => {
                                             info!("Service started: {}",
