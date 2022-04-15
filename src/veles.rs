@@ -1,16 +1,16 @@
-use std::io::prelude::*;
 use std::fs::{set_permissions, File};
+use std::io::prelude::*;
 use std::os::unix::fs::PermissionsExt;
-use std::process::{Command, Stdio};
 use std::os::unix::process::CommandExt;
-use users::{get_user_by_name, get_group_by_name};
+use std::process::{Command, Stdio};
+use users::{get_group_by_name, get_user_by_name};
 
-use common::*;
-use service::Service;
-use init_fields::InitFields;
-use mortal::Mortal;
-use mortal::Mortal::*;
-
+use crate::common::*;
+use crate::init_fields::InitFields;
+use crate::mortal::Mortal;
+use crate::mortal::Mortal::*;
+use crate::service::Service;
+use crate::*;
 
 // Veles is a service spawner deity
 //
@@ -19,7 +19,6 @@ pub trait Veles {
 
     fn start_service(&self) -> Result<u32, Mortal>;
 }
-
 
 impl Veles for Service {
     fn create_shell_wrapper(&self, commands: String) -> String {
@@ -41,12 +40,10 @@ impl Veles for Service {
                         }
 
                         match file.write(commands.as_bytes()) {
-                            Ok(_) => {
-                                match file.flush() {
-                                    Ok(_) => trace!("Flushed successfully"),
-                                    Err(fe) => error!("Flush failed! Reason: {}", fe),
-                                }
-                            }
+                            Ok(_) => match file.flush() {
+                                Ok(_) => trace!("Flushed successfully"),
+                                Err(fe) => error!("Flush failed! Reason: {}", fe),
+                            },
                             Err(we) => error!("Write2 error!. Reason: {}", we),
                         }
                     }
@@ -79,26 +76,28 @@ impl Veles for Service {
                 cmd.arg(self.create_shell_wrapper(commands.to_string()));
 
                 cmd.current_dir(self.work_dir());
-                trace!("Built command line: {:?} for working dir: {}",
-                       commands,
-                       self.work_dir());
+                trace!(
+                    "Built command line: {:?} for working dir: {}",
+                    commands,
+                    self.work_dir()
+                );
 
                 // NOTE: always set stdin to null:
                 cmd.stdin(Stdio::null());
                 cmd.stdout(Stdio::null());
                 cmd.stderr(Stdio::null());
 
-                match get_user_by_name(self.user().as_ref()) {
+                match get_user_by_name(&self.user()) {
                     Some(uid) => {
-                        trace!("Setting service UID of valid user: {}", uid.name());
+                        trace!("Setting service UID of valid user: {:?}", uid.name());
                         cmd.uid(uid.uid());
                     }
                     None => warn!("Username {} not found in system!", self.user()),
                 }
 
-                match get_group_by_name(self.group().as_ref()) {
+                match get_group_by_name(&self.group()) {
                     Some(gid) => {
-                        trace!("Setting service GID of valid group: {}", gid.name());
+                        trace!("Setting service GID of valid group: {:?}", gid.name());
                         cmd.gid(gid.gid());
                     }
                     None => warn!("Username {} not found in system!", self.group()),
@@ -120,7 +119,9 @@ impl Veles for Service {
                     }
                 }
             }
-            None => Err(ServiceNoStartDefined { service: self.clone() }),
+            None => Err(ServiceNoStartDefined {
+                service: self.clone(),
+            }),
         }
     }
 }

@@ -1,22 +1,20 @@
-use std::io::prelude::*;
-use std::fs::File;
+use colored::*;
+use regex::Regex;
 use std::fmt;
 use std::fmt::Display;
-use colored::*;
-use toml::*;
-use toml::de::Error as TomlError;
+use std::fs::File;
+use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
-use regex::Regex;
+use toml::de::Error as TomlError;
+use toml::*;
 
-use common::*;
-use init_fields::InitFields;
-use mortal::Mortal;
-use mortal::Mortal::*;
-
+use crate::common::*;
+use crate::init_fields::InitFields;
+use crate::mortal::Mortal;
+use crate::mortal::Mortal::*;
 
 // Service structure is a generic service representation.
 //
-
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct Service {
@@ -89,7 +87,6 @@ pub struct Service {
     pub pid_file: Option<String>,
 }
 
-
 impl Service {
     /// returns service name
     pub fn name(&self) -> String {
@@ -105,30 +102,31 @@ impl Service {
 
 
     pub fn from(file_name: String) -> Result<Service, Mortal> {
-        let def_abspath = format!("{}/{}", SERVICES_DIR, file_name.clone());
+        let def_abspath = format!("{}/{}", SERVICES_DIR, file_name);
         match Service::load_definition(def_abspath) {
             Ok(service_definition) => {
                 let service_config: Result<Service, TomlError> =
                     from_str(service_definition.as_ref());
                 match service_config {
-                    Ok(service) => Ok(Service { ini_file: Some(file_name), ..service }),
-                    Err(_) => {
-                        Err(DefinitionDecodeFailure {
-                            ini_name: file_name,
-                            cause: Error::new(ErrorKind::Other,
-                                              "Definition parse error! (detailed parse errors \
+                    Ok(service) => Ok(Service {
+                        ini_file: Some(file_name),
+                        ..service
+                    }),
+                    Err(_) => Err(DefinitionDecodeFailure {
+                        ini_name: file_name,
+                        cause: Error::new(
+                            ErrorKind::Other,
+                            "Definition parse error! (detailed parse errors \
                                                NYD!)"
-                                                  .to_string()),
-                        })
-                    }
+                                .to_string(),
+                        ),
+                    }),
                 }
             }
-            Err(cause) => {
-                Err(DefinitionLoadFailure {
-                    ini_name: file_name,
-                    cause: Error::new(ErrorKind::Other, cause.to_string()),
-                })
-            }
+            Err(cause) => Err(DefinitionLoadFailure {
+                ini_name: file_name,
+                cause: Error::new(ErrorKind::Other, cause.to_string()),
+            }),
         }
     }
 
@@ -140,20 +138,10 @@ impl Service {
                 let mut buffer = String::new();
                 match file.read_to_string(&mut buffer) {
                     Ok(_read_size) => Ok(buffer.to_owned()),
-                    Err(error) => {
-                        Err(RawLoadFailure {
-                            file_name: file_name,
-                            cause: error,
-                        })
-                    }
+                    Err(cause) => Err(RawLoadFailure { file_name, cause }),
                 }
             }
-            Err(cause) => {
-                Err(RawAccessFailure {
-                    file_name: file_name,
-                    cause: cause,
-                })
-            }
+            Err(cause) => Err(RawAccessFailure { file_name, cause }),
         }
     }
 
@@ -181,7 +169,6 @@ impl Service {
     }
 }
 
-
 impl Display for Service {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let slf = self.clone();
@@ -199,14 +186,14 @@ impl Display for Service {
             _ => format!(", urls: [{}]", slf.urls().join(", ")),
         };
 
-        write!(f,
-               "{}",
-               format!("Service(name: {}, ini: {}{}{}{})",
+        let info_blk = format!(
+            "Service(name: {}, ini: {}{}{}{})",
             slf.name(),
             slf.ini_file(),
             optional_pid_entry,
             optional_sock_entry,
             optional_urls_entries,
-        ))
+        );
+        write!(f, "{info_blk}")
     }
 }

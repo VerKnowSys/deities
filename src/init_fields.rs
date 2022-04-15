@@ -1,9 +1,8 @@
 use std::env;
 
-use common::*;
-use svarog::Svarog;
-use service::Service;
-
+use crate::service::Service;
+// use crate::svarog::Svarog;
+use crate::*;
 
 /// standard fields for service init file:
 pub trait InitFields {
@@ -22,36 +21,29 @@ pub trait InitFields {
     fn urls(&self) -> Vec<String>;
 }
 
-
 /// InitFields will try to use shell variables as fallback for most missin options in init files
 impl InitFields for Service {
     /// minimum disk space on disk required - in MiB
     fn disk_minimum_space(&self) -> i64 {
-        match self.disk_minimum_space.clone() {
+        match self.disk_minimum_space {
             Some(disk_minimum_space) => disk_minimum_space,
-            None => {
-                match env::var("DISK_MINIMUM_SPACE") {
-                    Ok(disk_minimum_space) => {
-                        disk_minimum_space.parse().unwrap_or(DISK_MINIMUM_SPACE)
-                    }
-                    Err(_) => DISK_MINIMUM_SPACE,
-                }
-            }
+            None => match env::var("DISK_MINIMUM_SPACE") {
+                Ok(disk_minimum_space) => disk_minimum_space.parse().unwrap_or(DISK_MINIMUM_SPACE),
+                Err(_) => DISK_MINIMUM_SPACE,
+            },
         }
     }
 
     // minimum disk inodes on disk required
     fn disk_minimum_inodes(&self) -> i64 {
-        match self.disk_minimum_inodes.clone() {
+        match self.disk_minimum_inodes {
             Some(disk_minimum_inodes) => disk_minimum_inodes,
-            None => {
-                match env::var("DISK_MINIMUM_INODES") {
-                    Ok(disk_minimum_inodes) => {
-                        disk_minimum_inodes.parse().unwrap_or(DISK_MINIMUM_INODES)
-                    }
-                    Err(_) => DISK_MINIMUM_INODES,
+            None => match env::var("DISK_MINIMUM_INODES") {
+                Ok(disk_minimum_inodes) => {
+                    disk_minimum_inodes.parse().unwrap_or(DISK_MINIMUM_INODES)
                 }
-            }
+                Err(_) => DISK_MINIMUM_INODES,
+            },
         }
     }
 
@@ -59,12 +51,10 @@ impl InitFields for Service {
     fn slack_webhook_url(&self) -> String {
         match self.slack_webhook_url.clone() {
             Some(slack_webhook_url) => slack_webhook_url,
-            None => {
-                match env::var("SLACK_WEBHOOK_URL") {
-                    Ok(slack_webhook_url) => slack_webhook_url.to_owned(),
-                    Err(_) => "".to_string(),
-                }
-            }
+            None => match env::var("SLACK_WEBHOOK_URL") {
+                Ok(slack_webhook_url) => slack_webhook_url,
+                Err(_) => "".to_string(),
+            },
         }
     }
 
@@ -72,18 +62,16 @@ impl InitFields for Service {
     fn slack_alert_channel(&self) -> String {
         match self.slack_alert_channel.clone() {
             Some(slack_alert_channel) => slack_alert_channel,
-            None => {
-                match env::var("SLACK_ALERT_CHANNEL") {
-                    Ok(slack_alert_channel) => slack_alert_channel.to_owned(),
-                    Err(_) => SLACK_ALERT_CHANNEL.to_string(),
-                }
-            }
+            None => match env::var("SLACK_ALERT_CHANNEL") {
+                Ok(slack_alert_channel) => slack_alert_channel,
+                Err(_) => SLACK_ALERT_CHANNEL.to_string(),
+            },
         }
     }
 
 
     fn checks_interval(&self) -> u64 {
-        match self.checks_interval.clone() {
+        match self.checks_interval {
             Some(checks_interval) => checks_interval,
             None => {
                 match env::var("CHECKS_INTERVAL") {
@@ -101,7 +89,7 @@ impl InitFields for Service {
 
 
     fn checks_url_timeout(&self) -> u64 {
-        match self.checks_url_timeout.clone() {
+        match self.checks_url_timeout {
             Some(checks_url_timeout) => checks_url_timeout,
             None => {
                 match env::var("CHECKS_URL_TIMEOUT") {
@@ -119,7 +107,7 @@ impl InitFields for Service {
 
 
     fn deathwatches_interval(&self) -> u64 {
-        match self.deathwatches_interval.clone() {
+        match self.deathwatches_interval {
             Some(deathwatches_interval) => deathwatches_interval,
             None => {
                 match env::var("DEATHWATCHES_INTERVAL") {
@@ -140,12 +128,10 @@ impl InitFields for Service {
     fn user(&self) -> String {
         match self.user.clone() {
             Some(name) => name,
-            None => {
-                match env::var("USER") {
-                    Ok(somebody) => somebody.to_owned(),
-                    Err(_) => "nobody".to_string(),
-                }
-            }
+            None => match env::var("USER") {
+                Ok(somebody) => somebody,
+                Err(_) => "nobody".to_string(),
+            },
         }
     }
 

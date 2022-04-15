@@ -1,113 +1,58 @@
-#[macro_use]
-extern crate log;
-extern crate toml;
-
-extern crate colored;
-extern crate fern;
-extern crate libc;
-extern crate glob;
-extern crate time;
-extern crate uuid;
-extern crate curl;
-extern crate slack_hook;
-extern crate chrono;
-extern crate hostname;
-extern crate uname;
-extern crate users;
-extern crate fs2;
-extern crate regex;
-
-use std::time::Duration;
 use colored::*;
-use log::LogLevel::*;
-use log::LogLevelFilter;
-use fern::init_global_logger;
-use fern::{DispatchConfig, OutputConfig};
-use std::env;
-use std::sync::Arc;
-use std::thread;
-use std::thread::{sleep, Builder};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use uuid::Uuid;
-use std::path;
-use glob::glob;
-use glob::Paths;
-use std::fs::File;
 use fs2::FileExt;
+use glob::{glob, Paths};
+use std::{
+    env,
+    fs::File,
+    path,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    thread::{self, sleep, Builder},
+    time::Duration,
+};
+use tracing_subscriber::{fmt, EnvFilter};
 use users::{Users, UsersCache};
+use uuid::Uuid;
 // use users::os::unix::{UserExt, GroupExt};
 // use users::os::bsd::UserExt as BSDUserExt;
 
-extern crate deities;
-use deities::common::*;
-use deities::veles::Veles;
-use deities::service::Service;
-use deities::perun::Perun;
-use deities::svarog::Svarog;
-use deities::init_fields::*;
-use deities::mortal::Mortal;
+use deities::{
+    common::*, init_fields::*, mortal::Mortal, perun::Perun, service::Service, svarog::Svarog,
+    veles::Veles, *,
+};
 
-
-/// initialize internal logger
-fn init_logger() {
-    let logger = DispatchConfig {
-        format: Box::new(|message: &str,
-                          log_level: &log::LogLevel,
-                          _location: &log::LogLocation| {
-            // This is a fairly simple format, though it's possible to do more complicated ones.
-            // This closure can contain any code, as long as it produces a String message.
-            let tim = time::now()
-                .strftime("%Y-%m-%d %H:%M:%S")
-                .unwrap()
-                .to_string()
-                .black()
-                .bold()
-                .dimmed();
-            let (lev, msg) = match log_level {
-                &Error => {
-                    (log_level.to_string().red().underline().dimmed(), message.red().underline())
-                }
-                &Warn => {
-                    (log_level.to_string().yellow().underline().dimmed(),
-                     message.yellow().underline())
-                }
-                &Info => (log_level.to_string().white().underline().dimmed(), message.white()),
-                &Debug => (log_level.to_string().cyan().underline().dimmed(), message.cyan()),
-                &Trace => (log_level.to_string().magenta().underline().dimmed(), message.magenta()),
-            };
-            format!("{} {:5} {}", tim, lev, msg)
-        }),
-        output: vec![OutputConfig::stdout()], // , fern::OutputConfig::file("output.log")
-        level: LogLevelFilter::Trace,
+/// Initialize logger and tracingformatter
+#[instrument]
+fn initialize() {
+    let env_log = match EnvFilter::try_from_env("LOG") {
+        Ok(env_value_from_env) => env_value_from_env,
+        Err(_) => EnvFilter::from("info"),
     };
-
-    // dynamic logger configuration
-    match env::var(LOG_ENV) {
-        Ok(val) => {
-            match val.as_ref() {
-                "trace" => init_global_logger(logger, LogLevelFilter::Trace).unwrap(),
-                "debug" => init_global_logger(logger, LogLevelFilter::Debug).unwrap(),
-                "info" => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
-                "warn" => init_global_logger(logger, LogLevelFilter::Warn).unwrap(),
-                "error" => init_global_logger(logger, LogLevelFilter::Error).unwrap(),
-                _ => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
-            }
-        }
-        Err(_) => init_global_logger(logger, LogLevelFilter::Info).unwrap(),
-    }
-
+    fmt()
+        .compact()
+        .with_thread_names(false)
+        .with_thread_ids(false)
+        .with_ansi(true)
+        .with_env_filter(env_log)
+        .with_filter_reloading()
+        .init();
 }
-
 
 fn list_services() -> Paths {
     glob(&format!("{}/{}", SERVICES_DIR, SERVICES_GLOB))
-        .expect(&format!("Failed to match {}/{}", SERVICES_DIR, SERVICES_GLOB))
+        .unwrap_or_else(|_| panic!("Failed to match {}/{}", SERVICES_DIR, SERVICES_GLOB))
 }
 
-
 fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
-    debug!("Thread UUID: {}",
-           thread::current().name().unwrap_or(&Uuid::new_v4().to_string()).bold());
+    debug!(
+        "Thread UUID: {}",
+        thread::current()
+            .name()
+            .unwrap_or(&Uuid::new_v4().to_string())
+            .bold()
+    );
     match service_to_monitor.unwrap().file_name() {
         Some(path) => {
             match path.to_str() {
@@ -123,32 +68,53 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                 Ok(ok) => info!("{}", ok),
 
                                 /* Handle disk space check without any following action */
-                                Err(Mortal::CheckDiskSpace{ service }) => {
-                                    warn!("Service requires: {} MiB free disk space!", service.disk_minimum_space() / 1024);
+                                Err(Mortal::CheckDiskSpace { service }) => {
+                                    warn!(
+                                        "Service requires: {} MiB free disk space!",
+                                        service.disk_minimum_space() / 1024
+                                    );
                                     match service.notification(
-                                        format!("Service requires: {} MiB free", service.disk_minimum_space() / 1024), "Disk space check failure!".to_string()) {
+                                        format!(
+                                            "Service requires: {} MiB free",
+                                            service.disk_minimum_space() / 1024
+                                        ),
+                                        "Disk space check failure!".to_string(),
+                                    ) {
                                         Ok(msg) => debug!("Done notification. Result: {}", msg),
                                         Err(er) => error!("Error with notification: {}", er),
                                     }
-                                },
+                                }
 
                                 /* Handle disk inodes check without any following action */
-                                Err(Mortal::CheckDiskInodes{ service }) => {
-                                    warn!("Service requires: {} free inodes!", service.disk_minimum_inodes());
+                                Err(Mortal::CheckDiskInodes { service }) => {
+                                    warn!(
+                                        "Service requires: {} free inodes!",
+                                        service.disk_minimum_inodes()
+                                    );
                                     match service.notification(
-                                        format!("Service requires: {} free inodes", service.disk_minimum_inodes()), "Disk inodes check failure!".to_string()) {
+                                        format!(
+                                            "Service requires: {} free inodes",
+                                            service.disk_minimum_inodes()
+                                        ),
+                                        "Disk inodes check failure!".to_string(),
+                                    ) {
                                         Ok(msg) => debug!("Done notification. Result: {}", msg),
                                         Err(er) => error!("Error with notification: {}", er),
                                     }
-                                },
+                                }
 
                                 /*
                                     NOTE: for other types of failures, we want to handle cleanup/ start routines:
                                 */
                                 Err(error) => {
-                                    warn!("Detected malfunction of: {}. Reason: {}", service, error);
+                                    warn!(
+                                        "Detected malfunction of: {}. Reason: {}",
+                                        service, error
+                                    );
                                     match service.notification(
-                                        format!("Detected malfunction of: {}", service), error.to_string()) {
+                                        format!("Detected malfunction of: {}", service),
+                                        error.to_string(),
+                                    ) {
                                         Ok(msg) => debug!("Notification sent: {}", msg),
                                         Err(er) => error!("{}", er),
                                     }
@@ -156,8 +122,10 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                     /* notification sent, now try handling service process */
                                     match service.start_service() {
                                         Ok(_) => {
-                                            info!("Service started: {}",
-                                                  service.name().green().bold())
+                                            info!(
+                                                "Service started: {}",
+                                                service.name().green().bold()
+                                            )
                                         }
                                         Err(cause) => {
                                             error!("Failed to start service. Reason: {}", cause)
@@ -179,13 +147,16 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
     }
 }
 
-
 fn eternity() -> () {
     let cycle_count = Arc::new(AtomicUsize::new(0));
     loop {
         cycle_count.fetch_add(1, Ordering::SeqCst);
-        debug!("Iteration no. {}",
-               format!("{}", cycle_count.clone().load(Ordering::SeqCst)).yellow().bold());
+        debug!(
+            "Iteration no. {}",
+            format!("{}", cycle_count.clone().load(Ordering::SeqCst))
+                .yellow()
+                .bold()
+        );
 
         // let handlers: Vec<thread::JoinHandle<_>> =
         let out: String = list_services()
@@ -197,19 +168,21 @@ fn eternity() -> () {
                 let name = format!("{}", handle.thread().name().unwrap_or("Unnamed"));
                 (handle, name)
             })
-            .map(|(handle, name)| {
-                match handle.join() {
-                    Ok(_) => {
-                        format!("Thread: {} joined iteration: {}",
-                                name,
-                                cycle_count.load(Ordering::SeqCst))
-                    }
-                    Err(cause) => {
-                        format!("Thread: {} failed to join iteration: {}! Internal cause: {:?}",
-                                name,
-                                cycle_count.load(Ordering::SeqCst),
-                                cause)
-                    }
+            .map(|(handle, name)| match handle.join() {
+                Ok(_) => {
+                    format!(
+                        "Thread: {} joined iteration: {}",
+                        name,
+                        cycle_count.load(Ordering::SeqCst)
+                    )
+                }
+                Err(cause) => {
+                    format!(
+                        "Thread: {} failed to join iteration: {}! Internal cause: {:?}",
+                        name,
+                        cycle_count.load(Ordering::SeqCst),
+                        cause
+                    )
                 }
             })
             .collect();
@@ -224,33 +197,32 @@ fn eternity() -> () {
     }
 }
 
-
 fn main() {
-    init_logger();
+    initialize();
 
     let users = UsersCache::new();
     let lock_name = match users.get_current_uid() {
         0 => DEFAULT_LOCK.to_string(),
         _ => {
-            format!("{}{}",
-                    env::var("HOME").unwrap_or("/tmp".to_string()),
-                    DEFAULT_LOCK)
+            format!(
+                "{}{}",
+                env::var("HOME").unwrap_or_else(|_| "/tmp".to_string()),
+                DEFAULT_LOCK
+            )
         }
     };
 
     let lockfile = match File::open(lock_name.clone()) {
         Ok(file) => file,
-        Err(_) => {
-            match File::create(lock_name.clone()) {
-                Ok(file) => file,
-                Err(cause) => {
-                    error!("Lock creation error: {}", cause);
-                    unsafe {
-                        libc::exit(libc::EPERM);
-                    }
+        Err(_) => match File::create(lock_name.clone()) {
+            Ok(file) => file,
+            Err(cause) => {
+                error!("Lock creation error: {}", cause);
+                unsafe {
+                    libc::exit(libc::EPERM);
                 }
             }
-        }
+        },
     };
     debug!("Trying for lock file: {}", lock_name);
     match lockfile.try_lock_exclusive() {
@@ -266,7 +238,6 @@ fn main() {
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
     eternity()
 }
-
 
 #[cfg(test)]
 mod tests {

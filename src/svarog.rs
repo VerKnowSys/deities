@@ -1,21 +1,22 @@
-use slack_hook::{Slack, PayloadBuilder, AttachmentBuilder, Parse, Field}; // SlackLink,
+use chrono::DateTime;
 use chrono::Local;
-use chrono::datetime::*;
-use slack_hook::SlackTextContent::Text; // Link
+use slack_hook::{AttachmentBuilder, Field, Parse, PayloadBuilder, Slack}; // SlackLink,
+// use chrono::datetime::*;
 use hostname::get_hostname;
-use uname::{uname, Info};
+use libc;
+use libc::kill;
+use slack_hook::SlackTextContent::Text; // Link
 use std::io::{Error, ErrorKind};
 use std::thread::sleep;
 use std::time::Duration;
-use libc;
-use libc::kill;
+use uname::{uname, Info};
 
-use common::*;
-use service::Service;
-use init_fields::InitFields;
-use mortal::Mortal;
-use mortal::Mortal::*;
-
+use crate::common::*;
+use crate::init_fields::InitFields;
+use crate::mortal::Mortal;
+use crate::mortal::Mortal::*;
+use crate::service::Service;
+use crate::*;
 
 // Svarog is mr Smith - that can do variety of stuff
 //
@@ -43,7 +44,6 @@ pub trait Svarog {
     fn pid(&self) -> i32;
 }
 
-
 impl Svarog for Service {
     fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
         let local: DateTime<Local> = Local::now();
@@ -58,8 +58,10 @@ impl Svarog for Service {
             _ => {
                 match &alertchannel[..] {
                     "" => {
-                        info!("SLACK_ALERTCHANNEL is empty. Slack notigications will NOTE be \
-                               sent!");
+                        info!(
+                            "SLACK_ALERTCHANNEL is empty. Slack notigications will NOTE be \
+                               sent!"
+                        );
                         Ok("Notifiication skipped".to_string())
                     }
                     _channel => {
@@ -85,7 +87,7 @@ impl Svarog for Service {
                                                 Field::new("Message:", message, Some(true)),
                                                 Field::new("Service details:", self.to_string(), Some(true)),
                                                 Field::new("", "", Some(false)),
-                                                Field::new("Host name:", format!("{}", self.sys_info().nodename), Some(true)),
+                                                Field::new("Host name:", self.sys_info().nodename, Some(true)),
                                                 Field::new(
                                                     format!("System / Release / Machine / {}", NAME),
                                                     format!("{} / {} / {} / {}", self.sys_info().sysname, self.sys_info().release, self.sys_info().machine, VERSION),
@@ -114,9 +116,8 @@ impl Svarog for Service {
 
                         let res = slack.send(&p);
                         match res {
-                            Ok(()) =>
-                                Ok("Notifiication sent".to_string()),
-                            Err(cause) => Err(NotificationFailure { cause: cause }),
+                            Ok(()) => Ok("Notifiication sent".to_string()),
+                            Err(cause) => Err(NotificationFailure { cause }),
                         }
                     }
                 }
@@ -136,62 +137,64 @@ impl Svarog for Service {
 
     // helper to read basic system information
     fn sys_info(&self) -> Info {
-        uname().unwrap_or(Info::new().unwrap())
+        uname().unwrap_or_else(|_| Info::new().unwrap())
     }
 
 
     fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal> {
         let pid = match self.pid() {
-            -1 => return Err(SanityCheckFailure { message: "Invalid pid: -1!".to_string() }),
+            -1 => {
+                return Err(SanityCheckFailure {
+                    message: "Invalid pid: -1!".to_string(),
+                });
+            }
             0 => {
                 return Err(SanityCheckFailure {
                     message: "Given pid: 0, it usually means that no process to kill, cause it's \
                               already dead."
                         .to_string(),
-                })
+                });
             }
             1 => {
                 return Err(SanityCheckFailure {
                     message: "You can't put a death watch on pid: 1!".to_string(),
-                })
+                });
             }
             any => any,
         };
 
         unsafe {
             if kill(pid, 0) == 0 {
-                trace!("Process with pid: {}, still exists in process list! Perun enters the \
+                trace!(
+                    "Process with pid: {}, still exists in process list! Perun enters the \
                         room!",
-                       pid);
+                    pid
+                );
                 if signal != libc::SIGCONT {
                     let deathwatch_ival = self.clone().deathwatches_interval();
                     debug!("Deathwatch interval: {} ms", deathwatch_ival);
                     sleep(Duration::from_millis(deathwatch_ival))
                 }
-                if kill(pid, signal) == 0 {
-                    if kill(pid, 0) != 0 {
-                        debug!("Process with pid: {}, was interrupted!", pid);
-                        return Ok(OkPidInterrupted {
-                            service: self.clone(),
-                            pid: pid,
-                        });
-                    }
+                if kill(pid, signal) == 0 && kill(pid, 0) != 0 {
+                    debug!("Process with pid: {}, was interrupted!", pid);
+                    return Ok(OkPidInterrupted {
+                        service: self.clone(),
+                        pid,
+                    });
                 }
                 match signal {
                     libc::SIGCONT => self.death_watch(libc::SIGINT),
                     libc::SIGINT => self.death_watch(libc::SIGTERM),
                     libc::SIGTERM => self.death_watch(libc::SIGKILL),
                     libc::SIGKILL => self.death_watch(libc::SIGKILL),
-                    any => {
-                        Err(SanityCheckFailure {
-                            message: format!("Unhandled death_watch signal: {}", any),
-                        })
-                    }
+                    any => Err(SanityCheckFailure {
+                        message: format!("Unhandled death_watch signal: {}", any),
+                    }),
                 }
             } else {
                 Err(OkPidAlreadyInterrupted {
                     service: self.clone(),
-                    pid: pid,
+                    pid,
                 })
             }
         }
@@ -199,10 +202,7 @@ impl Svarog for Service {
 
 
     fn pid(&self) -> i32 {
-        match self.read_pid() {
-            Ok(pid) => pid,
-            Err(_) => -1,
-        }
+        self.read_pid().unwrap_or(-1)
     }
 
 
@@ -212,15 +212,15 @@ impl Svarog for Service {
                 let content = raw_content.trim();
                 match content.parse::<i32>() {
                     Ok(pid) => Ok(pid),
-                    Err(_) => Err(CheckPidfileMalformed { service: self.clone() }),
+                    Err(_) => Err(CheckPidfileMalformed {
+                        service: self.clone(),
+                    }),
                 }
             }
-            Err(cause) => {
-                Err(CheckPidfileUnaccessible {
-                    service: self.clone(),
-                    cause: Error::new(ErrorKind::PermissionDenied, cause.to_string()),
-                })
-            }
+            Err(cause) => Err(CheckPidfileUnaccessible {
+                service: self.clone(),
+                cause: Error::new(ErrorKind::PermissionDenied, cause.to_string()),
+            }),
         }
     }
 
