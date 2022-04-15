@@ -1,22 +1,25 @@
-use chrono::DateTime;
-use chrono::Local;
-use slack_hook::{AttachmentBuilder, Field, Parse, PayloadBuilder, Slack}; // SlackLink,
-// use chrono::datetime::*;
-use hostname::get_hostname;
-use libc;
-use libc::kill;
-use slack_hook::SlackTextContent::Text; // Link
-use std::io::{Error, ErrorKind};
-use std::thread::sleep;
-use std::time::Duration;
+use chrono::{DateTime, Local};
+use libc::{self, kill};
+
+// Link
+use slack_hook::{
+    AttachmentBuilder, Field, Parse, PayloadBuilder, Slack, SlackTextContent::Text,
+}; // SlackLink,
+use std::{
+    io::{Error, ErrorKind},
+    thread::sleep,
+    time::Duration,
+};
 use uname::{uname, Info};
 
-use crate::common::*;
-use crate::init_fields::InitFields;
-use crate::mortal::Mortal;
-use crate::mortal::Mortal::*;
-use crate::service::Service;
-use crate::*;
+use crate::{
+    common::*,
+    init_fields::InitFields,
+    mortal::Mortal::{self, *},
+    service::Service,
+    *,
+};
+
 
 // Svarog is mr Smith - that can do variety of stuff
 //
@@ -45,6 +48,7 @@ pub trait Svarog {
 }
 
 impl Svarog for Service {
+    #[instrument]
     fn notification(&self, message: String, error: String) -> Result<String, Mortal> {
         let local: DateTime<Local> = Local::now();
         let webhookurl = self.slack_webhook_url();
@@ -117,7 +121,11 @@ impl Svarog for Service {
                         let res = slack.send(&p);
                         match res {
                             Ok(()) => Ok("Notifiication sent".to_string()),
-                            Err(cause) => Err(NotificationFailure { cause }),
+                            Err(cause) => {
+                                Err(NotificationFailure {
+                                    cause,
+                                })
+                            }
                         }
                     }
                 }
@@ -127,20 +135,26 @@ impl Svarog for Service {
 
 
     /// Helper to read hostname from underlring system
+    #[instrument]
     fn hostname(&self) -> String {
-        match get_hostname() {
-            Some(host) => host,
-            None => DEFAULT_HOSTNAME.to_string(),
+        match hostname::get() {
+            Ok(host) => {
+                host.into_string()
+                    .unwrap_or_else(|_| String::from("unknown"))
+            }
+            Err(_) => DEFAULT_HOSTNAME.to_string(),
         }
     }
 
 
-    // helper to read basic system information
+    /// helper to read basic system information
+    #[instrument]
     fn sys_info(&self) -> Info {
         uname().unwrap_or_else(|_| Info::new().unwrap())
     }
 
 
+    #[instrument]
     fn death_watch(&self, signal: libc::c_int) -> Result<Mortal, Mortal> {
         let pid = match self.pid() {
             -1 => {
@@ -150,9 +164,10 @@ impl Svarog for Service {
             }
             0 => {
                 return Err(SanityCheckFailure {
-                    message: "Given pid: 0, it usually means that no process to kill, cause it's \
+                    message:
+                        "Given pid: 0, it usually means that no process to kill, cause it's \
                               already dead."
-                        .to_string(),
+                            .to_string(),
                 });
             }
             1 => {
@@ -187,9 +202,11 @@ impl Svarog for Service {
                     libc::SIGINT => self.death_watch(libc::SIGTERM),
                     libc::SIGTERM => self.death_watch(libc::SIGKILL),
                     libc::SIGKILL => self.death_watch(libc::SIGKILL),
-                    any => Err(SanityCheckFailure {
-                        message: format!("Unhandled death_watch signal: {}", any),
-                    }),
+                    any => {
+                        Err(SanityCheckFailure {
+                            message: format!("Unhandled death_watch signal: {}", any),
+                        })
+                    }
                 }
             } else {
                 Err(OkPidAlreadyInterrupted {
@@ -201,26 +218,32 @@ impl Svarog for Service {
     }
 
 
+    #[instrument]
     fn pid(&self) -> i32 {
         self.read_pid().unwrap_or(-1)
     }
 
 
+    #[instrument]
     fn read_pid(&self) -> Result<i32, Mortal> {
         match Service::load_raw(self.clone().pid_file()) {
             Ok(raw_content) => {
                 let content = raw_content.trim();
                 match content.parse::<i32>() {
                     Ok(pid) => Ok(pid),
-                    Err(_) => Err(CheckPidfileMalformed {
-                        service: self.clone(),
-                    }),
+                    Err(_) => {
+                        Err(CheckPidfileMalformed {
+                            service: self.clone(),
+                        })
+                    }
                 }
             }
-            Err(cause) => Err(CheckPidfileUnaccessible {
-                service: self.clone(),
-                cause: Error::new(ErrorKind::PermissionDenied, cause.to_string()),
-            }),
+            Err(cause) => {
+                Err(CheckPidfileUnaccessible {
+                    service: self.clone(),
+                    cause: Error::new(ErrorKind::PermissionDenied, cause.to_string()),
+                })
+            }
         }
     }
 

@@ -15,6 +15,7 @@ use std::{
 use tracing_subscriber::{fmt, EnvFilter};
 use users::{Users, UsersCache};
 use uuid::Uuid;
+
 // use users::os::unix::{UserExt, GroupExt};
 // use users::os::bsd::UserExt as BSDUserExt;
 
@@ -22,6 +23,7 @@ use deities::{
     common::*, init_fields::*, mortal::Mortal, perun::Perun, service::Service, svarog::Svarog,
     veles::Veles, *,
 };
+
 
 /// Initialize logger and tracingformatter
 #[instrument]
@@ -40,11 +42,15 @@ fn initialize() {
         .init();
 }
 
+
+#[instrument]
 fn list_services() -> Paths {
     glob(&format!("{}/{}", SERVICES_DIR, SERVICES_GLOB))
         .unwrap_or_else(|_| panic!("Failed to match {}/{}", SERVICES_DIR, SERVICES_GLOB))
 }
 
+
+#[instrument]
 fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
     debug!(
         "Thread UUID: {}",
@@ -68,7 +74,9 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                 Ok(ok) => info!("{}", ok),
 
                                 /* Handle disk space check without any following action */
-                                Err(Mortal::CheckDiskSpace { service }) => {
+                                Err(Mortal::CheckDiskSpace {
+                                    service,
+                                }) => {
                                     warn!(
                                         "Service requires: {} MiB free disk space!",
                                         service.disk_minimum_space() / 1024
@@ -80,13 +88,17 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                         ),
                                         "Disk space check failure!".to_string(),
                                     ) {
-                                        Ok(msg) => debug!("Done notification. Result: {}", msg),
+                                        Ok(msg) => {
+                                            debug!("Done notification. Result: {}", msg)
+                                        }
                                         Err(er) => error!("Error with notification: {}", er),
                                     }
                                 }
 
                                 /* Handle disk inodes check without any following action */
-                                Err(Mortal::CheckDiskInodes { service }) => {
+                                Err(Mortal::CheckDiskInodes {
+                                    service,
+                                }) => {
                                     warn!(
                                         "Service requires: {} free inodes!",
                                         service.disk_minimum_inodes()
@@ -98,7 +110,9 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                         ),
                                         "Disk inodes check failure!".to_string(),
                                     ) {
-                                        Ok(msg) => debug!("Done notification. Result: {}", msg),
+                                        Ok(msg) => {
+                                            debug!("Done notification. Result: {}", msg)
+                                        }
                                         Err(er) => error!("Error with notification: {}", er),
                                     }
                                 }
@@ -128,7 +142,10 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
                                             )
                                         }
                                         Err(cause) => {
-                                            error!("Failed to start service. Reason: {}", cause)
+                                            error!(
+                                                "Failed to start service. Reason: {}",
+                                                cause
+                                            )
                                         }
                                     }
                                 }
@@ -147,6 +164,8 @@ fn spawn_thread(service_to_monitor: Result<path::PathBuf, glob::GlobError>) {
     }
 }
 
+
+#[instrument]
 fn eternity() -> () {
     let cycle_count = Arc::new(AtomicUsize::new(0));
     loop {
@@ -168,21 +187,23 @@ fn eternity() -> () {
                 let name = format!("{}", handle.thread().name().unwrap_or("Unnamed"));
                 (handle, name)
             })
-            .map(|(handle, name)| match handle.join() {
-                Ok(_) => {
-                    format!(
-                        "Thread: {} joined iteration: {}",
-                        name,
-                        cycle_count.load(Ordering::SeqCst)
-                    )
-                }
-                Err(cause) => {
-                    format!(
-                        "Thread: {} failed to join iteration: {}! Internal cause: {:?}",
-                        name,
-                        cycle_count.load(Ordering::SeqCst),
-                        cause
-                    )
+            .map(|(handle, name)| {
+                match handle.join() {
+                    Ok(_) => {
+                        format!(
+                            "Thread: {} joined iteration: {}",
+                            name,
+                            cycle_count.load(Ordering::SeqCst)
+                        )
+                    }
+                    Err(cause) => {
+                        format!(
+                            "Thread: {} failed to join iteration: {}! Internal cause: {:?}",
+                            name,
+                            cycle_count.load(Ordering::SeqCst),
+                            cause
+                        )
+                    }
                 }
             })
             .collect();
@@ -197,6 +218,8 @@ fn eternity() -> () {
     }
 }
 
+
+#[instrument]
 fn main() {
     initialize();
 
@@ -214,15 +237,17 @@ fn main() {
 
     let lockfile = match File::open(lock_name.clone()) {
         Ok(file) => file,
-        Err(_) => match File::create(lock_name.clone()) {
-            Ok(file) => file,
-            Err(cause) => {
-                error!("Lock creation error: {}", cause);
-                unsafe {
-                    libc::exit(libc::EPERM);
+        Err(_) => {
+            match File::create(lock_name.clone()) {
+                Ok(file) => file,
+                Err(cause) => {
+                    error!("Lock creation error: {}", cause);
+                    unsafe {
+                        libc::exit(libc::EPERM);
+                    }
                 }
             }
-        },
+        }
     };
     debug!("Trying for lock file: {}", lock_name);
     match lockfile.try_lock_exclusive() {
@@ -237,10 +262,4 @@ fn main() {
 
     info!("{} v{}", NAME.green().bold(), VERSION.yellow().bold());
     eternity()
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {}
 }

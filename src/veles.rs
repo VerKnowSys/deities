@@ -1,16 +1,19 @@
-use std::fs::{set_permissions, File};
-use std::io::prelude::*;
-use std::os::unix::fs::PermissionsExt;
-use std::os::unix::process::CommandExt;
-use std::process::{Command, Stdio};
+use std::{
+    fs::{set_permissions, File},
+    io::prelude::*,
+    os::unix::{fs::PermissionsExt, process::CommandExt},
+    process::{Command, Stdio},
+};
 use users::{get_group_by_name, get_user_by_name};
 
-use crate::common::*;
-use crate::init_fields::InitFields;
-use crate::mortal::Mortal;
-use crate::mortal::Mortal::*;
-use crate::service::Service;
-use crate::*;
+use crate::{
+    common::*,
+    init_fields::InitFields,
+    mortal::Mortal::{self, *},
+    service::Service,
+    *,
+};
+
 
 // Veles is a service spawner deity
 //
@@ -20,17 +23,22 @@ pub trait Veles {
     fn start_service(&self) -> Result<u32, Mortal>;
 }
 
+
 impl Veles for Service {
+    #[instrument]
     fn create_shell_wrapper(&self, commands: String) -> String {
         let wrapper = format!("{}/.{}.sh", SERVICES_DIR, self.name());
         match File::create(wrapper.clone()) {
             Ok(mut file) => {
-                match file.write(format!("#!/bin/sh\nexport PATH={}\n", DEFAULT_PATH).as_bytes()) {
+                match file
+                    .write(format!("#!/bin/sh\nexport PATH={}\n", DEFAULT_PATH).as_bytes())
+                {
                     Ok(_) => {
                         // If cleanup routines defined, inject it before spawn:
                         match self.clone().cleanup {
                             Some(cleanup) => {
-                                let cl = format!("\n#Pre-start cleanup routine:\n{}\n\n", cleanup);
+                                let cl =
+                                    format!("\n#Pre-start cleanup routine:\n{}\n\n", cleanup);
                                 match file.write(cl.as_bytes()) {
                                     Ok(_) => trace!("Cleanup routine written successfully"),
                                     Err(we) => error!("Cleanup write error!. Reason: {}", we),
@@ -40,10 +48,12 @@ impl Veles for Service {
                         }
 
                         match file.write(commands.as_bytes()) {
-                            Ok(_) => match file.flush() {
-                                Ok(_) => trace!("Flushed successfully"),
-                                Err(fe) => error!("Flush failed! Reason: {}", fe),
-                            },
+                            Ok(_) => {
+                                match file.flush() {
+                                    Ok(_) => trace!("Flushed successfully"),
+                                    Err(fe) => error!("Flush failed! Reason: {}", fe),
+                                }
+                            }
                             Err(we) => error!("Write2 error!. Reason: {}", we),
                         }
                     }
@@ -67,6 +77,7 @@ impl Veles for Service {
     }
 
 
+    #[instrument]
     fn start_service(&self) -> Result<u32, Mortal> {
         let mut cmd = Command::new(DEFAULT_SHELL);
         cmd.arg("-c");
@@ -119,9 +130,11 @@ impl Veles for Service {
                     }
                 }
             }
-            None => Err(ServiceNoStartDefined {
-                service: self.clone(),
-            }),
+            None => {
+                Err(ServiceNoStartDefined {
+                    service: self.clone(),
+                })
+            }
         }
     }
 }

@@ -1,17 +1,19 @@
 use colored::*;
 use regex::Regex;
-use std::fmt;
-use std::fmt::Display;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::{Error, ErrorKind};
-use toml::de::Error as TomlError;
-use toml::*;
+use std::{
+    fmt::{self, Display},
+    fs::File,
+    io::{prelude::*, Error, ErrorKind},
+};
+use toml::{de::Error as TomlError, *};
 
-use crate::common::*;
-use crate::init_fields::InitFields;
-use crate::mortal::Mortal;
-use crate::mortal::Mortal::*;
+use crate::{
+    common::*,
+    init_fields::InitFields,
+    mortal::Mortal::{self, *},
+    *,
+};
+
 
 // Service structure is a generic service representation.
 //
@@ -89,6 +91,7 @@ pub struct Service {
 
 impl Service {
     /// returns service name
+    #[instrument]
     pub fn name(&self) -> String {
         match self.name.clone() {
             Some(name) => name,
@@ -101,6 +104,7 @@ impl Service {
     }
 
 
+    #[instrument]
     pub fn from(file_name: String) -> Result<Service, Mortal> {
         let def_abspath = format!("{}/{}", SERVICES_DIR, file_name);
         match Service::load_definition(def_abspath) {
@@ -108,45 +112,63 @@ impl Service {
                 let service_config: Result<Service, TomlError> =
                     from_str(service_definition.as_ref());
                 match service_config {
-                    Ok(service) => Ok(Service {
-                        ini_file: Some(file_name),
-                        ..service
-                    }),
-                    Err(_) => Err(DefinitionDecodeFailure {
-                        ini_name: file_name,
-                        cause: Error::new(
-                            ErrorKind::Other,
-                            "Definition parse error! (detailed parse errors \
+                    Ok(service) => {
+                        Ok(Service {
+                            ini_file: Some(file_name),
+                            ..service
+                        })
+                    }
+                    Err(_) => {
+                        Err(DefinitionDecodeFailure {
+                            ini_name: file_name,
+                            cause: Error::new(
+                                ErrorKind::Other,
+                                "Definition parse error! (detailed parse errors \
                                                NYD!)"
-                                .to_string(),
-                        ),
-                    }),
+                                    .to_string(),
+                            ),
+                        })
+                    }
                 }
             }
-            Err(cause) => Err(DefinitionLoadFailure {
-                ini_name: file_name,
-                cause: Error::new(ErrorKind::Other, cause.to_string()),
-            }),
+            Err(cause) => {
+                Err(DefinitionLoadFailure {
+                    ini_name: file_name,
+                    cause: Error::new(ErrorKind::Other, cause.to_string()),
+                })
+            }
         }
     }
 
 
     /// loads raw file as String
+    #[instrument]
     pub fn load_raw(file_name: String) -> Result<String, Mortal> {
         match File::open(file_name.clone()) {
             Ok(mut file) => {
                 let mut buffer = String::new();
                 match file.read_to_string(&mut buffer) {
                     Ok(_read_size) => Ok(buffer.to_owned()),
-                    Err(cause) => Err(RawLoadFailure { file_name, cause }),
+                    Err(cause) => {
+                        Err(RawLoadFailure {
+                            file_name,
+                            cause,
+                        })
+                    }
                 }
             }
-            Err(cause) => Err(RawAccessFailure { file_name, cause }),
+            Err(cause) => {
+                Err(RawAccessFailure {
+                    file_name,
+                    cause,
+                })
+            }
         }
     }
 
 
     /// loads service definition from toml (ini) file
+    #[instrument]
     pub fn load_definition(abs_path_to_file: String) -> Result<String, Mortal> {
         match Service::load_raw(abs_path_to_file) {
             Ok(content) => Ok(content),
@@ -156,6 +178,7 @@ impl Service {
 
 
     /// returns init file name
+    #[instrument]
     fn ini_file(&self) -> String {
         match self.ini_file.clone() {
             Some(file_path) => file_path,
@@ -164,10 +187,12 @@ impl Service {
     }
 
 
+    #[instrument]
     pub fn styled(&self) -> ColoredString {
         self.to_string().underline().italic()
     }
 }
+
 
 impl Display for Service {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

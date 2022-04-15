@@ -1,11 +1,12 @@
 use curl::Error as CurlError;
 use slack_hook::Error as SlackError;
-use std::fmt;
-use std::fmt::Display;
-use std::io::Error;
+use std::{
+    fmt::{self, Display},
+    io::Error,
+};
 
-use crate::init_fields::InitFields;
-use crate::service::Service;
+use crate::{init_fields::InitFields, service::Service};
+
 
 #[derive(Debug)]
 pub enum Mortal {
@@ -114,6 +115,7 @@ pub enum Mortal {
     },
 }
 
+
 impl Display for Mortal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -129,10 +131,14 @@ impl Display for Mortal {
                         service, amount
                     )
                 }
-                Mortal::OkUrlsChecks { ref service } => {
+                Mortal::OkUrlsChecks {
+                    ref service,
+                } => {
                     format!("Ok: {} successfully passed URLs checks!", service)
                 }
-                Mortal::OkUnixSockCheck { ref service } => {
+                Mortal::OkUnixSockCheck {
+                    ref service,
+                } => {
                     format!("Ok: {} successfully passed UNIX sock checks!", service)
                 }
                 Mortal::OkPidAlive {
@@ -156,11 +162,15 @@ impl Display for Mortal {
                         pid, service
                     )
                 }
-                Mortal::OkDiskCheck { ref service } => {
+                Mortal::OkDiskCheck {
+                    ref service,
+                } => {
                     format!("Ok: Disk check passed for service: {}", service)
                 }
 
-                Mortal::CheckNoServiceChecks { ref service } => {
+                Mortal::CheckNoServiceChecks {
+                    ref service,
+                } => {
                     format!("{} has to contain at least single check!", service)
                 }
                 Mortal::CheckPidDead {
@@ -217,7 +227,9 @@ impl Display for Mortal {
                 } => {
                     format!("Internal CURL failure for: {}. Reason: {}!", service, cause)
                 }
-                Mortal::CheckPidfileMalformed { ref service } => {
+                Mortal::CheckPidfileMalformed {
+                    ref service,
+                } => {
                     format!("Detected malformed pid file of: {}!", service)
                 }
                 Mortal::CheckPidfileUnaccessible {
@@ -251,20 +263,26 @@ impl Display for Mortal {
                         cause
                     )
                 }
-                Mortal::CheckDiskSpace { ref service } => {
+                Mortal::CheckDiskSpace {
+                    ref service,
+                } => {
                     format!(
                         "Disk space check alert! Requires available at least: {} MiB!",
                         service.disk_minimum_space()
                     )
                 }
-                Mortal::CheckDiskInodes { ref service } => {
+                Mortal::CheckDiskInodes {
+                    ref service,
+                } => {
                     format!(
                         "Disk inodes check alert! Requires at least: {} !",
                         service.disk_minimum_inodes()
                     )
                 }
 
-                Mortal::ServiceNoStartDefined { ref service } => {
+                Mortal::ServiceNoStartDefined {
+                    ref service,
+                } => {
                     format!("No 'start' value in configuration of: {}!", service)
                 }
                 Mortal::ServiceStartFailure {
@@ -282,7 +300,9 @@ impl Display for Mortal {
                     )
                 }
 
-                Mortal::NotificationFailure { ref cause } => {
+                Mortal::NotificationFailure {
+                    ref cause,
+                } => {
                     format!("Failed to send notification! Reason: {}", cause)
                 }
                 Mortal::NotificationConfigFailure {
@@ -295,7 +315,9 @@ impl Display for Mortal {
                     )
                 }
 
-                Mortal::SanityCheckFailure { ref message } => {
+                Mortal::SanityCheckFailure {
+                    ref message,
+                } => {
                     format!("Sanity check failed: {}", message)
                 }
             }
